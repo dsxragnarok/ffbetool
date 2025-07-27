@@ -1,6 +1,17 @@
 [package]
 name = "ffbetool"
 version = "0.1.0"
+authors = ["Kevin Phung <phung.kevin@gmail.com>"]
 edition = "2024"
+description = """
+ffbetool is a tool to assemble spritesheets from the Final Fantasy Brave Exvius
+sprite atlas assets.
+"""
+
+
+[[bin]]
+name = "ffbetool"
+path = "src/bin/main.rs"
 
 [dependencies]
+log = "0.4.27"
