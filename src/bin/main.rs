@@ -1,7 +1,7 @@
-use ffbetool::cgg;
+use ffbetool::{cgg, cgs};
 use std::io::BufRead;
 
-fn main() -> std::io::Result<()> {
+fn main() -> std::result::Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 3 {
@@ -11,6 +11,11 @@ fn main() -> std::io::Result<()> {
 
     let unit_id: u32 = args[1].parse().expect("unit_id should be numerical value");
     let input_path = &args[2];
+    let anim_name = if args.len() < 4 {
+        None
+    } else {
+        Some(&args[3])
+    };
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
     let frames = match cgg::read_file(unit_id, input_path) {
@@ -31,10 +36,34 @@ fn main() -> std::io::Result<()> {
         }
         Err(err) => {
             eprintln!("failed to process cgg file: {err}");
-            return Err(err);
+            return Err(err.to_string());
         }
     };
 
-    println!("frames: {frames:?}");
+    let unit = ffbetool::Unit {
+        id: unit_id,
+        frames,
+    };
+
+    let src_img = ffbetool::image::load_source_image(unit_id, input_path);
+
+    match anim_name {
+        Some(anim_name) => {
+            match cgs::read_file(unit_id, anim_name, input_path) {
+                Ok(reader) => {
+
+                },
+                Err(err) => {
+                    eprintln!("failed to process cgs file: {err}");
+                    return Err(err.to_string());
+                }
+            }
+        },
+        None => {
+            eprint!("`anim_name` not specified -- full directory processing not yet supported");
+            return Err("`anim_name` not specified -- full directory processing not yet supported".to_string());
+        }
+    }
+
     Ok(())
 }
