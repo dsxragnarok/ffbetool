@@ -6,22 +6,28 @@ fn main() -> std::io::Result<()> {
     let unit_id = 204002917;
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
-    match cgg::read_file(unit_id, input_path) {
+    let frames = match cgg::read_file(unit_id, input_path) {
         Ok(reader) => {
-            for (idx, line_result) in reader.lines().enumerate() {
+            let frames: Vec<cgg::FrameParts> = reader.lines().enumerate().filter_map(|(row, line_result)| {
                 match line_result {
                     Ok(line) => {
-                        let parts = cgg::process(&line, idx);
-                        println!("parts: {parts:?}");
+                        let parts = cgg::process(&line, row);
+                        parts
                     }
-                    Err(err) => eprintln!("failed to read line {idx}: {err}"),
+                    Err(err) => {
+                        eprintln!("failed to read line {row}: {err}");
+                        None
+                    },
                 }
-            }
-            Ok(())
+            }).collect();
+            frames
         }
         Err(err) => {
             eprintln!("failed to process cgg file: {err}");
-            Err(err)
+            return Err(err);
         }
-    }
+    };
+
+    println!("frames: {frames:?}");
+    Ok(())
 }
