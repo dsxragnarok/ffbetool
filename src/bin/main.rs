@@ -2,8 +2,15 @@ use ffbetool::cgg;
 use std::io::BufRead;
 
 fn main() -> std::io::Result<()> {
-    let input_path = "input-assets/holy-dragoon-kain";
-    let unit_id = 204002917;
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() < 3 {
+        eprintln!("usage: ffbetool <unit_id> <cgg-file>");
+        return Ok(());
+    }
+
+    let unit_id: u32 = args[1].parse().expect("unit_id should be numerical value");
+    let input_path = &args[2];
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
     let frames = match cgg::read_file(unit_id, input_path) {
