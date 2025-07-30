@@ -1,4 +1,4 @@
-use ffbetool::{cgg, cgs};
+use ffbetool::{cgg, cgs, image::BlendExt };
 use std::io::BufRead;
 
 fn main() -> std::result::Result<(), String> {
@@ -69,6 +69,20 @@ fn main() -> std::result::Result<(), String> {
                     cgg_frame.into_iter().map(|part_data| part_data.ingest_cgs_data(x, y, delay)).collect()
                 }).collect();
                 println!("-- frames --\n {frames:?}");
+
+                let mut target_img = image::RgbaImage::new(2000, 2000);
+                for frame in frames {
+                    frame.iter().for_each(|part_data| {
+                        let cgs::PartData { img_x, img_y, img_width, img_height, .. } = part_data;
+                        let mut part_img = image::RgbaImage::new(*img_width, *img_height);
+
+                        let cgs::PartData { x_pos, y_pos, blend_mode, flip_x, flip_y, rotate, opacity, .. } = part_data;
+
+                        if *blend_mode == 1 {
+                            part_img.blend();
+                        }
+                    });
+                }
             }
             Err(err) => {
                 eprintln!("failed to process cgs file: {err}");
