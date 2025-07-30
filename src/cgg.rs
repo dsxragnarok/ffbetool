@@ -2,7 +2,7 @@ use crate::cgs;
 use std::fs::File;
 use std::io::{self, BufReader};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PartData {
     pub anchor: i32,
     pub x_pos: i32,

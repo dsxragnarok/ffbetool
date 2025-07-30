@@ -21,7 +21,6 @@ pub struct PartData {
     pub flip_x: bool,
     pub flip_y: bool,
     pub line_index: usize,
-    pub frame_index: usize,
     pub x: i32,
     pub y: i32,
     pub delay: u32,
@@ -29,13 +28,52 @@ pub struct PartData {
 
 impl From<cgg::PartData> for PartData {
     fn from(value: cgg::PartData) -> Self {
-        value.into()
+        let cgg::PartData {
+            anchor,
+            x_pos,
+            y_pos,
+            next_type,
+            blend_mode,
+            opacity,
+            rotate,
+            img_x,
+            img_y,
+            img_width,
+            img_height,
+            page_id,
+            index,
+            flip_x,
+            flip_y,
+            line_index,
+        } = value;
+
+        Self {
+            anchor,
+            x_pos,
+            y_pos,
+            next_type,
+            blend_mode,
+            opacity,
+            rotate,
+            img_x,
+            img_y,
+            img_width,
+            img_height,
+            page_id,
+            index,
+            flip_x,
+            flip_y,
+            line_index,
+            x: 0,
+            y: 0,
+            delay: 0,
+        }
     }
 }
 
 /// frame_index, x, y, delay
 #[derive(Debug)]
-pub struct CgsMeta(pub usize, pub u32, pub u32, pub i32);
+pub struct CgsMeta(pub usize, pub i32, pub i32, pub u32);
 
 pub fn read_file(unit_id: u32, anim_name: &str, input_path: &str) -> io::Result<BufReader<File>> {
     let file_path = format!("{input_path}/unit_{anim_name}_cgs_{unit_id}.csv");

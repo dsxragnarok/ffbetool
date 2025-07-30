@@ -48,7 +48,7 @@ fn main() -> std::result::Result<(), String> {
     match anim_name {
         Some(anim_name) => match cgs::read_file(unit_id, anim_name, input_path) {
             Ok(reader) => {
-                let cgs_frames_meta: Vec<cgs::CgsMeta> = reader
+                let cgs_frames_meta = reader
                     .lines()
                     .enumerate()
                     .filter_map(|(row, line_result)| match line_result {
@@ -61,8 +61,14 @@ fn main() -> std::result::Result<(), String> {
                             eprintln!("failed to read cgs line: {err}");
                             None
                         }
-                    })
-                    .collect();
+                    });
+
+                let frames: Vec<Vec<cgs::PartData>> = cgs_frames_meta.map(|meta| {
+                    let cgs::CgsMeta(frame_idx, x, y, delay) = meta;
+                    let cgg_frame = unit.frames[frame_idx].clone();
+                    cgg_frame.into_iter().map(|part_data| part_data.ingest_cgs_data(x, y, delay)).collect()
+                }).collect();
+                println!("-- frames --\n {frames:?}");
             }
             Err(err) => {
                 eprintln!("failed to process cgs file: {err}");
