@@ -1,4 +1,4 @@
-use ffbetool::{cgg, cgs, imageops::{BlendExt, OpacityExt}};
+use ffbetool::{cgg, cgs, imageops::{BlendExt, ColorBoundsExt, OpacityExt}};
 use image::imageops;
 use std::io::BufRead;
 
@@ -54,7 +54,6 @@ fn main() -> std::result::Result<(), String> {
                         |(row, line_result)| match line_result {
                             Ok(line) => {
                                 let cgs_meta = cgs::process(&line, row);
-                                println!("proc cgs row[{row}] {cgs_meta:?}");
                                 cgs_meta
                             }
                             Err(err) => {
@@ -74,9 +73,9 @@ fn main() -> std::result::Result<(), String> {
                                 .collect()
                         })
                         .collect();
-                    println!("-- frames --\n {frames:?}");
 
-                    for (frame_num, frame) in frames.iter().enumerate() {
+                    let frame_data: Vec<_> = frames.iter().enumerate().map(|(frame_num, frame)| {
+                    // for (frame_num, frame) in frames.iter().enumerate() {
                         let mut target_img = image::RgbaImage::new(2000, 2000);
                         frame.iter().for_each(|part_data| {
                             let cgs::PartData {
@@ -86,6 +85,7 @@ fn main() -> std::result::Result<(), String> {
                                 img_height,
                                 x,
                                 y,
+                                delay,
                                 ..
                             } = part_data;
                             // let mut part_img = image::RgbaImage::new(*img_width, *img_height);
@@ -131,8 +131,17 @@ fn main() -> std::result::Result<(), String> {
                             imageops::overlay(&mut target_img, &part_img, (2000 / 2) + *x as i64 + *x_pos as i64, (2000 / 2) + *y as i64 + *y_pos as i64);
                         });
 
-                        target_img.save(format!("anim-{anim_name}-{frame_num}.png")).unwrap();
-                    }
+                        let rect = target_img.get_color_bounds_rect(image::Rgba([0, 0, 0, 0]), false);
+                        // target_img.save(format!("anim-{anim_name}-{frame_num}.png")).unwrap();
+
+                        // TODO: `x`, `y`, and `delay` should be moved up to the Frame level, not part level
+                        // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
+                        Some((
+                            target_img,
+                            rect,
+                            // delay,
+                        ))
+                    }).collect();
                 }
                 Err(err) => {
                     eprintln!("failed to process cgs file: {err}");

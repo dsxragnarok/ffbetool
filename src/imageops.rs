@@ -63,3 +63,48 @@ impl OpacityExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
         }
     }
 }
+
+/// Extension trait for color bounds detection.
+pub trait ColorBoundsExt {
+    /// Returns the bounding rectangle of pixels matching (or not matching) a color.
+    /// 
+    /// # Parameters
+    /// * `color` - The RGBA color to search for
+    /// * `find_color` - If true, finds pixels matching the color; if false, finds pixels NOT matching the color
+    /// 
+    /// # Returns
+    /// Some((x, y, width, height)) of the bounding rectangle, or None if no matching pixels found.
+    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<(u32, u32, u32, u32)>;
+}
+
+impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
+    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<(u32, u32, u32, u32)> {
+        let (width, height) = self.dimensions();
+        let mut min_x = width;
+        let mut min_y = height;
+        let mut max_x = 0;
+        let mut max_y = 0;
+        let mut found = false;
+
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = *self.get_pixel(x, y);
+                let matches = if find_color { pixel == color } else { pixel != color };
+                
+                if matches {
+                    min_x = min_x.min(x);
+                    min_y = min_y.min(y);
+                    max_x = max_x.max(x);
+                    max_y = max_y.max(y);
+                    found = true;
+                }
+            }
+        }
+
+        if found {
+            Some((min_x, min_y, max_x - min_x + 1, max_y - min_y + 1))
+        } else {
+            None
+        }
+    }
+}
