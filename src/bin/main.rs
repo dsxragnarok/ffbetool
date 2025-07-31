@@ -1,4 +1,4 @@
-use ffbetool::{cgg, cgs, imageops::BlendExt};
+use ffbetool::{cgg, cgs, imageops::{BlendExt, OpacityExt}};
 use image::imageops;
 use std::io::BufRead;
 
@@ -76,17 +76,20 @@ fn main() -> std::result::Result<(), String> {
                         .collect();
                     println!("-- frames --\n {frames:?}");
 
-                    let mut target_img = image::RgbaImage::new(2000, 2000);
-                    for frame in frames {
+                    for (frame_num, frame) in frames.iter().enumerate() {
+                        let mut target_img = image::RgbaImage::new(2000, 2000);
                         frame.iter().for_each(|part_data| {
                             let cgs::PartData {
                                 img_x,
                                 img_y,
                                 img_width,
                                 img_height,
+                                x,
+                                y,
                                 ..
                             } = part_data;
-                            let mut part_img = image::RgbaImage::new(*img_width, *img_height);
+                            // let mut part_img = image::RgbaImage::new(*img_width, *img_height);
+                            let mut part_img = src_img.clone().crop(*img_x, *img_y, *img_width, *img_height).to_rgba8();
 
                             let cgs::PartData {
                                 x_pos,
@@ -117,9 +120,18 @@ fn main() -> std::result::Result<(), String> {
                                     90 => imageops::rotate90(&part_img),
                                     180 => imageops::rotate180(&part_img),
                                     270 | -90 => imageops::rotate270(&part_img),
+                                    _ => part_img,
                                 };
                             }
+
+                            if *opacity < 100 {
+                                part_img.opacity((*opacity as f32) / 100.0);
+                            }
+
+                            imageops::overlay(&mut target_img, &part_img, (2000 / 2) + *x as i64 + *x_pos as i64, (2000 / 2) + *y as i64 + *y_pos as i64);
                         });
+
+                        target_img.save(format!("anim-{anim_name}-{frame_num}.png")).unwrap();
                     }
                 }
                 Err(err) => {
