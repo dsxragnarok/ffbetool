@@ -3,7 +3,7 @@ use image::{self, ImageBuffer, Rgba};
 pub fn load_source_image(unit_id: u32, input_path: &str) -> image::DynamicImage {
     let path = format!("{input_path}/unit_anime_{unit_id}.png");
     let img = image::open(path).unwrap();
-    return img;
+    img
 }
 
 /// Extension trait for applying custom blend operations to RGBA images.
@@ -26,7 +26,12 @@ impl BlendExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
         for pixel in self.pixels_mut() {
             let [r, g, b, a] = pixel.0;
             if a != 0 {
-                let (r_f, g_f, b_f, a_f) = (r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a as f32 / 255.0);
+                let (r_f, g_f, b_f, a_f) = (
+                    r as f32 / 255.0,
+                    g as f32 / 255.0,
+                    b as f32 / 255.0,
+                    a as f32 / 255.0,
+                );
                 pixel.0 = [
                     ((r_f * a_f) * 255.0) as u8,
                     ((g_f * a_f) * 255.0) as u8,
@@ -34,6 +39,27 @@ impl BlendExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
                     (((r_f + g_f + b_f) / 3.0) * 255.0) as u8,
                 ];
             }
+        }
+    }
+}
+
+/// Extension trait to apply opacity scaling to RGBA images.
+pub trait OpacityExt {
+    /// Multiplies the alpha channel of each pixel by the given opacity scalar (0.0 to 1.0).
+    fn opacity(&mut self, opacity: f32);
+}
+
+impl OpacityExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
+    fn opacity(&mut self, opacity: f32) {
+        assert!(
+            (0.0..=1.0).contains(&opacity),
+            "Opacity must be between 0.0 and 1.0. Got {opacity}."
+        );
+
+        for pixel in self.pixels_mut() {
+            let [r, g, b, a] = pixel.0;
+            let new_alpha = ((a as f32) * opacity).round().clamp(0.0, 255.0) as u8;
+            *pixel = Rgba([r, g, b, new_alpha]);
         }
     }
 }
