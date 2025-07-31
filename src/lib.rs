@@ -1,6 +1,6 @@
 pub mod cgg;
 pub mod cgs;
-pub mod image;
+pub mod imageops;
 
 pub type Frames = Vec<cgg::FrameParts>;
 
