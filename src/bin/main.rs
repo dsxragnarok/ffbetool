@@ -10,7 +10,7 @@ fn main() -> std::result::Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 3 {
-        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns>");
+        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns> <g>");
         return Ok(());
     }
 
@@ -21,6 +21,13 @@ fn main() -> std::result::Result<(), String> {
         0
     } else {
         args[4].parse().expect("columns should be numerical value")
+    };
+    let gif: bool = if args.len() < 6 {
+        false
+    } else if args[5] == "gif" || args[5] == "g" {
+            true
+    } else {
+        false
     };
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
@@ -56,7 +63,7 @@ fn main() -> std::result::Result<(), String> {
 
     let src_img = ffbetool::imageops::load_source_image(unit_id, input_path);
 
-    let content = match anim_name {
+    let mut content = match anim_name {
         Some(anim_name) => {
             match cgs::read_file(unit_id, anim_name, input_path) {
                 Ok(reader) => {
@@ -250,6 +257,18 @@ fn main() -> std::result::Result<(), String> {
             + 10,
     };
 
+    content.1 = content.1.into_iter().map(|frame| {
+        match frame {
+            Some(mut frame) => {
+                frame.image = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                Some(frame)
+            }
+            None => {
+                frame
+            }
+        }
+    }).collect();
+
     let (anim_name, frames) = content;
     let spritesheet = if columns == 0 || columns >= frames.len() {
         let mut sheet =
@@ -259,16 +278,8 @@ fn main() -> std::result::Result<(), String> {
             let x = (idx as u32) * frame_rect.width;
             let y = 0;
 
-            if let Some(mut frame) = frame {
-                let cropped_frame_img = imageops::crop(
-                    &mut frame.image,
-                    frame_rect.x,
-                    frame_rect.y,
-                    frame_rect.width,
-                    frame_rect.height,
-                )
-                .to_image();
-                imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
+            if let Some(frame) = frame {
+                imageops::overlay(&mut sheet, &frame.image, x as i64, y as i64);
             }
         });
 
@@ -283,16 +294,8 @@ fn main() -> std::result::Result<(), String> {
             let x = ((idx % columns) as u32) * frame_rect.width;
             let y = ((idx / columns) as u32) * frame_rect.height;
 
-            if let Some(mut frame) = frame {
-                let cropped_frame_img = imageops::crop(
-                    &mut frame.image,
-                    frame_rect.x,
-                    frame_rect.y,
-                    frame_rect.width,
-                    frame_rect.height,
-                )
-                .to_image();
-                imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
+            if let Some(frame) = frame {
+                imageops::overlay(&mut sheet, &frame.image, x as i64, y as i64);
             }
         });
 
