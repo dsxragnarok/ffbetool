@@ -16,5 +16,4 @@ pub struct Unit {
     pub height: Option<u32>,
     pub x_offset: Option<i32>,
     pub y_offset: Option<i32>,
-
 }

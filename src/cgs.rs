@@ -23,11 +23,7 @@ pub struct CompositeFrame {
 }
 
 impl Frame {
-    pub fn composite(
-        self,
-        image: ImageBuffer<Rgba<u8>, Vec<u8>>,
-        rect: Rect,
-    ) -> CompositeFrame {
+    pub fn composite(self, image: ImageBuffer<Rgba<u8>, Vec<u8>>, rect: Rect) -> CompositeFrame {
         let Frame {
             frame_idx, delay, ..
         } = self;

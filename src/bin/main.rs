@@ -173,10 +173,12 @@ fn main() -> std::result::Result<(), String> {
                                                 (top_left.y()).min(y as i32),
                                             ));
 
-                                            unit.bottom_right = Some(ffbetool::imageops::Point::new(
-                                                (bottom_right.x()).max(x as i32 + width as i32),
-                                                (bottom_right.y()).max(y as i32 + height as i32),
-                                            ));
+                                            unit.bottom_right =
+                                                Some(ffbetool::imageops::Point::new(
+                                                    (bottom_right.x()).max(x as i32 + width as i32),
+                                                    (bottom_right.y())
+                                                        .max(y as i32 + height as i32),
+                                                ));
                                         }
                                         _ => {
                                             let ffbetool::imageops::Rect {
@@ -185,8 +187,14 @@ fn main() -> std::result::Result<(), String> {
                                                 width,
                                                 height,
                                             } = rect;
-                                            unit.top_left = Some(ffbetool::imageops::Point::new(x as i32, y as i32));
-                                            unit.bottom_right = Some(ffbetool::imageops::Point::new(x as i32 + width as i32, y as i32 + height as i32));
+                                            unit.top_left = Some(ffbetool::imageops::Point::new(
+                                                x as i32, y as i32,
+                                            ));
+                                            unit.bottom_right =
+                                                Some(ffbetool::imageops::Point::new(
+                                                    x as i32 + width as i32,
+                                                    y as i32 + height as i32,
+                                                ));
                                         }
                                     }
 
@@ -214,25 +222,52 @@ fn main() -> std::result::Result<(), String> {
     };
 
     let frame_rect = ffbetool::imageops::Rect {
-        x: unit.top_left.expect("top_left should have a value here").x() as u32,
-        y: unit.top_left.expect("top_left should have a value here").y() as u32,
-        width: (unit.bottom_right.expect("bottom_right should have a value here").x() - unit.top_left.expect("top_left should have a value here").x()) as u32 + 10,
-        height: (unit.bottom_right.expect("bottom_right should have a value here").y() - unit.top_left.expect("top_left should have a value here").y()) as u32 + 10,
+        x: unit
+            .top_left
+            .expect("top_left should have a value here")
+            .x() as u32,
+        y: unit
+            .top_left
+            .expect("top_left should have a value here")
+            .y() as u32,
+        width: (unit
+            .bottom_right
+            .expect("bottom_right should have a value here")
+            .x()
+            - unit
+                .top_left
+                .expect("top_left should have a value here")
+                .x()) as u32
+            + 10,
+        height: (unit
+            .bottom_right
+            .expect("bottom_right should have a value here")
+            .y()
+            - unit
+                .top_left
+                .expect("top_left should have a value here")
+                .y()) as u32
+            + 10,
     };
 
     let (anim_name, frames) = content;
     let spritesheet = if columns == 0 || columns >= frames.len() {
-        let mut sheet = image::RgbaImage::new(
-            frame_rect.width * (frames.len() as u32),
-            frame_rect.height,
-        );
+        let mut sheet =
+            image::RgbaImage::new(frame_rect.width * (frames.len() as u32), frame_rect.height);
 
         frames.into_iter().enumerate().for_each(|(idx, frame)| {
             let x = (idx as u32) * frame_rect.width;
             let y = 0;
 
             if let Some(mut frame) = frame {
-                let cropped_frame_img = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                let cropped_frame_img = imageops::crop(
+                    &mut frame.image,
+                    frame_rect.x,
+                    frame_rect.y,
+                    frame_rect.width,
+                    frame_rect.height,
+                )
+                .to_image();
                 imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
             }
         });
@@ -249,7 +284,14 @@ fn main() -> std::result::Result<(), String> {
             let y = ((idx / columns) as u32) * frame_rect.height;
 
             if let Some(mut frame) = frame {
-                let cropped_frame_img = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                let cropped_frame_img = imageops::crop(
+                    &mut frame.image,
+                    frame_rect.x,
+                    frame_rect.y,
+                    frame_rect.width,
+                    frame_rect.height,
+                )
+                .to_image();
                 imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
             }
         });

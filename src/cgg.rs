@@ -56,33 +56,38 @@ pub fn process(text: &str, row: usize) -> Option<FrameParts> {
     let parts: Vec<PartData> = params
         .chunks(chunk_size)
         .enumerate()
-        .filter_map(|(index, chunk)| {
-            match chunk {
-
-                [x_pos, y_pos, next_type,
-                    blend_mode, opacity, rotate,
-                    img_x, img_y, img_width,
-                    img_height, page_id] => Some(
-                    PartData {
-                        anchor,
-                        x_pos: x_pos.parse().expect(&format!("{x_pos} {msg}")),
-                        y_pos: y_pos.parse().expect(&format!("{y_pos} {msg}")),
-                        next_type: next_type.parse().expect(&format!("{next_type} {msg}")),
-                        blend_mode: blend_mode.parse().expect(&format!("{blend_mode} {msg}")),
-                        opacity: opacity.parse().expect(&format!("{opacity} {msg}")),
-                        rotate: rotate.parse().expect(&format!("{rotate} {msg}")),
-                        img_x: img_x.parse().expect(&format!("{img_x} {msg}")),
-                        img_y: img_y.parse().expect(&format!("{img_y} {msg}")),
-                        img_width: img_width.parse().expect(&format!("{img_width} {msg}")),
-                        img_height: img_height.parse().expect(&format!("{img_height} {msg}")),
-                        page_id: page_id.parse().expect(&format!("{page_id} {msg}")),
-                        index,
-                        flip_x: *next_type == "1" || *next_type == "3",
-                        flip_y: *next_type == "2"|| *next_type == "3",
-                        line_index: row,
-                    }),
-                _ => None,
-            }
+        .filter_map(|(index, chunk)| match chunk {
+            [
+                x_pos,
+                y_pos,
+                next_type,
+                blend_mode,
+                opacity,
+                rotate,
+                img_x,
+                img_y,
+                img_width,
+                img_height,
+                page_id,
+            ] => Some(PartData {
+                anchor,
+                x_pos: x_pos.parse().expect(&format!("{x_pos} {msg}")),
+                y_pos: y_pos.parse().expect(&format!("{y_pos} {msg}")),
+                next_type: next_type.parse().expect(&format!("{next_type} {msg}")),
+                blend_mode: blend_mode.parse().expect(&format!("{blend_mode} {msg}")),
+                opacity: opacity.parse().expect(&format!("{opacity} {msg}")),
+                rotate: rotate.parse().expect(&format!("{rotate} {msg}")),
+                img_x: img_x.parse().expect(&format!("{img_x} {msg}")),
+                img_y: img_y.parse().expect(&format!("{img_y} {msg}")),
+                img_width: img_width.parse().expect(&format!("{img_width} {msg}")),
+                img_height: img_height.parse().expect(&format!("{img_height} {msg}")),
+                page_id: page_id.parse().expect(&format!("{page_id} {msg}")),
+                index,
+                flip_x: *next_type == "1" || *next_type == "3",
+                flip_y: *next_type == "2" || *next_type == "3",
+                line_index: row,
+            }),
+            _ => None,
         })
         .rev()
         .collect();

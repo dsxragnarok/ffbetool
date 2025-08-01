@@ -113,7 +113,11 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
         for y in 0..height {
             for x in 0..width {
                 let pixel = *self.get_pixel(x, y);
-                let matches = if find_color { pixel == color } else { pixel != color };
+                let matches = if find_color {
+                    pixel == color
+                } else {
+                    pixel != color
+                };
 
                 if matches {
                     min_x = min_x.min(x);
