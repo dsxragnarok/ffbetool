@@ -3,72 +3,12 @@ use std::io::{self, BufReader};
 
 use crate::cgg;
 
-#[derive(Debug, Default)]
-pub struct PartData {
-    pub anchor: i32,
-    pub x_pos: i32,
-    pub y_pos: i32,
-    pub next_type: i32,
-    pub blend_mode: i32,
-    pub opacity: i32,
-    pub rotate: i32,
-    pub img_x: u32,
-    pub img_y: u32,
-    pub img_width: u32,
-    pub img_height: u32,
-    pub page_id: u32,
-    pub index: usize,
-    pub flip_x: bool,
-    pub flip_y: bool,
-    pub line_index: usize,
+pub struct Frame {
+    pub frame_idx: usize,
+    pub parts: cgg::FrameParts,
     pub x: i32,
     pub y: i32,
     pub delay: u32,
-}
-
-impl From<cgg::PartData> for PartData {
-    fn from(value: cgg::PartData) -> Self {
-        let cgg::PartData {
-            anchor,
-            x_pos,
-            y_pos,
-            next_type,
-            blend_mode,
-            opacity,
-            rotate,
-            img_x,
-            img_y,
-            img_width,
-            img_height,
-            page_id,
-            index,
-            flip_x,
-            flip_y,
-            line_index,
-        } = value;
-
-        Self {
-            anchor,
-            x_pos,
-            y_pos,
-            next_type,
-            blend_mode,
-            opacity,
-            rotate,
-            img_x,
-            img_y,
-            img_width,
-            img_height,
-            page_id,
-            index,
-            flip_x,
-            flip_y,
-            line_index,
-            x: 0,
-            y: 0,
-            delay: 0,
-        }
-    }
 }
 
 /// frame_index, x, y, delay

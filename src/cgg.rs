@@ -1,4 +1,3 @@
-use crate::cgs;
 use std::fs::File;
 use std::io::{self, BufReader};
 
@@ -20,17 +19,6 @@ pub struct PartData {
     pub flip_x: bool,
     pub flip_y: bool,
     pub line_index: usize,
-}
-
-impl PartData {
-    pub fn ingest_cgs_data(self, x: i32, y: i32, delay: u32) -> cgs::PartData {
-        let mut cgs: cgs::PartData = self.into();
-        cgs.x = x;
-        cgs.y = y;
-        cgs.delay = delay;
-
-        cgs
-    }
 }
 
 pub type FrameParts = Vec<PartData>;

@@ -1,4 +1,8 @@
-use ffbetool::{cgg, cgs, imageops::{BlendExt, ColorBoundsExt, OpacityExt}};
+use ffbetool::{
+    cgg::{self, PartData},
+    cgs,
+    imageops::{BlendExt, ColorBoundsExt, OpacityExt},
+};
 use image::imageops;
 use std::io::BufRead;
 
@@ -63,85 +67,101 @@ fn main() -> std::result::Result<(), String> {
                         },
                     );
 
-                    let frames: Vec<Vec<cgs::PartData>> = cgs_frames_meta
+                    let frames: Vec<cgs::Frame> = cgs_frames_meta
                         .map(|meta| {
                             let cgs::CgsMeta(frame_idx, x, y, delay) = meta;
-                            let cgg_frame = unit.frames[frame_idx].clone();
-                            cgg_frame
-                                .into_iter()
-                                .map(|part_data| part_data.ingest_cgs_data(x, y, delay))
-                                .collect()
-                        })
-                        .collect();
-
-                    let frame_data: Vec<_> = frames.iter().enumerate().map(|(frame_num, frame)| {
-                    // for (frame_num, frame) in frames.iter().enumerate() {
-                        let mut target_img = image::RgbaImage::new(2000, 2000);
-                        frame.iter().for_each(|part_data| {
-                            let cgs::PartData {
-                                img_x,
-                                img_y,
-                                img_width,
-                                img_height,
+                            let parts = unit.frames[frame_idx].clone();
+                            cgs::Frame {
+                                frame_idx,
+                                parts,
                                 x,
                                 y,
                                 delay,
-                                ..
-                            } = part_data;
-                            // let mut part_img = image::RgbaImage::new(*img_width, *img_height);
-                            let mut part_img = src_img.clone().crop(*img_x, *img_y, *img_width, *img_height).to_rgba8();
-
-                            let cgs::PartData {
-                                x_pos,
-                                y_pos,
-                                blend_mode,
-                                flip_x,
-                                flip_y,
-                                rotate,
-                                opacity,
-                                ..
-                            } = part_data;
-
-                            if *blend_mode == 1 {
-                                part_img.blend();
                             }
+                        })
+                        .collect();
 
-                            if *flip_x {
-                                part_img = imageops::flip_horizontal(&part_img);
+                    let frame_data: Vec<_> = frames
+                        .iter()
+                        .enumerate()
+                        .map(|(frame_num, frame)| {
+                            let mut target_img = image::RgbaImage::new(2000, 2000);
+                            frame.parts.iter().for_each(|part_data| {
+                                let PartData {
+                                    img_x,
+                                    img_y,
+                                    img_width,
+                                    img_height,
+                                    ..
+                                } = part_data;
+                                let mut part_img = src_img
+                                    .clone()
+                                    .crop(*img_x, *img_y, *img_width, *img_height)
+                                    .to_rgba8();
+
+                                let PartData {
+                                    x_pos,
+                                    y_pos,
+                                    blend_mode,
+                                    flip_x,
+                                    flip_y,
+                                    rotate,
+                                    opacity,
+                                    ..
+                                } = part_data;
+
+                                if *blend_mode == 1 {
+                                    part_img.blend();
+                                }
+
+                                if *flip_x {
+                                    part_img = imageops::flip_horizontal(&part_img);
+                                }
+
+                                if *flip_y {
+                                    part_img = imageops::flip_vertical(&part_img);
+                                }
+
+                                if *rotate != 0 {
+                                    println!(" -- Rotate [{rotate}] -- ");
+                                    part_img = match rotate {
+                                        90 => imageops::rotate90(&part_img),
+                                        180 => imageops::rotate180(&part_img),
+                                        270 | -90 => imageops::rotate270(&part_img),
+                                        _ => part_img,
+                                    };
+                                }
+
+                                if *opacity < 100 {
+                                    part_img.opacity((*opacity as f32) / 100.0);
+                                }
+
+                                imageops::overlay(
+                                    &mut target_img,
+                                    &part_img,
+                                    (2000 / 2) + frame.x as i64 + *x_pos as i64,
+                                    (2000 / 2) + frame.y as i64 + *y_pos as i64,
+                                );
+                            });
+
+                            match target_img.get_color_bounds_rect(image::Rgba([0, 0, 0, 0]), false)
+                            {
+                                Some(rect) => {
+                                    // target_img
+                                    //     .save(format!("anim-{anim_name}-{frame_num}.png"))
+                                    //     .unwrap();
+
+                                    println!(
+                                        "frame[{frame_num}] rect: [{rect:?}] delay[{}]",
+                                        frame.delay
+                                    );
+                                    // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
+                                    Some((frame, target_img, rect, frame.delay))
+                                }
+                                None => None,
                             }
-
-                            if *flip_y {
-                                part_img = imageops::flip_vertical(&part_img);
-                            }
-
-                            if *rotate != 0 {
-                                println!(" -- Rotate [{rotate}] -- ");
-                                part_img = match rotate {
-                                    90 => imageops::rotate90(&part_img),
-                                    180 => imageops::rotate180(&part_img),
-                                    270 | -90 => imageops::rotate270(&part_img),
-                                    _ => part_img,
-                                };
-                            }
-
-                            if *opacity < 100 {
-                                part_img.opacity((*opacity as f32) / 100.0);
-                            }
-
-                            imageops::overlay(&mut target_img, &part_img, (2000 / 2) + *x as i64 + *x_pos as i64, (2000 / 2) + *y as i64 + *y_pos as i64);
-                        });
-
-                        let rect = target_img.get_color_bounds_rect(image::Rgba([0, 0, 0, 0]), false);
-                        // target_img.save(format!("anim-{anim_name}-{frame_num}.png")).unwrap();
-
-                        // TODO: `x`, `y`, and `delay` should be moved up to the Frame level, not part level
-                        // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
-                        Some((
-                            target_img,
-                            rect,
-                            // delay,
-                        ))
-                    }).collect();
+                        })
+                        .collect();
                 }
                 Err(err) => {
                     eprintln!("failed to process cgs file: {err}");
