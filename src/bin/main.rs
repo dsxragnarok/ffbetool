@@ -10,13 +10,18 @@ fn main() -> std::result::Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 3 {
-        eprintln!("usage: ffbetool <unit_id> <cgg-file>");
+        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns>");
         return Ok(());
     }
 
     let unit_id: u32 = args[1].parse().expect("unit_id should be numerical value");
     let input_path = &args[2];
     let anim_name = if args.len() < 4 { None } else { Some(&args[3]) };
+    let columns = if args.len() < 5 {
+        0
+    } else {
+        args[4].parse().expect("columns should be numerical value")
+    };
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
     let frames = match cgg::read_file(unit_id, input_path) {
@@ -43,14 +48,15 @@ fn main() -> std::result::Result<(), String> {
         }
     };
 
-    let unit = ffbetool::Unit {
+    let mut unit = ffbetool::Unit {
         id: unit_id,
         frames,
+        ..Default::default()
     };
 
     let src_img = ffbetool::imageops::load_source_image(unit_id, input_path);
 
-    match anim_name {
+    let content = match anim_name {
         Some(anim_name) => {
             match cgs::read_file(unit_id, anim_name, input_path) {
                 Ok(reader) => {
@@ -146,6 +152,7 @@ fn main() -> std::result::Result<(), String> {
 
                             match target_img.get_color_bounds_rect(image::Rgba([0, 0, 0, 0]), false)
                             {
+                                // TODO: deal with `include_empty` - this indicates we should have frames with nothing
                                 Some(rect) => {
                                     // target_img
                                     //     .save(format!("anim-{anim_name}-{frame_num}.png"))
@@ -155,13 +162,34 @@ fn main() -> std::result::Result<(), String> {
                                         "frame[{frame_num}] rect: [{rect:?}] delay[{}]",
                                         frame.delay
                                     );
-                                    // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
+
+                                    match (&unit.top_left, &unit.bottom_right) {
+                                        (Some((tl_x, tl_y)), Some((br_x, br_y))) => {
+                                            let (x, y, width, height) = rect;
+                                            unit.top_left = Some((
+                                                (*tl_x).min(x as i32),
+                                                (*tl_y).min(y as i32),
+                                            ));
+
+                                            unit.bottom_right = Some((
+                                                (*br_x).max(x as i32 + width as i32),
+                                                (*br_y).max(y as i32 + height as i32),
+                                            ));
+                                        }
+                                        _ => {
+                                            let (x, y, width, height) = rect;
+                                            unit.top_left = Some((x as i32, y as i32));
+                                            unit.bottom_right = Some((x as i32 + width as i32, y as i32 + height as i32));
+                                        }
+                                    }
+
                                     Some(frame.composite(target_img, rect))
                                 }
                                 None => None,
                             }
                         })
                         .collect();
+                    (anim_name, frame_data)
                 }
                 Err(err) => {
                     eprintln!("failed to process cgs file: {err}");
@@ -176,7 +204,53 @@ fn main() -> std::result::Result<(), String> {
                     .to_string(),
             );
         }
-    }
+    };
 
+    let frame_rect = ffbetool::imageops::Rect {
+        x: unit.top_left.unwrap().0 as u32,
+        y: unit.top_left.unwrap().1 as u32,
+        width: (unit.bottom_right.unwrap().0 - unit.top_left.unwrap().0) as u32 + 10,
+        height: (unit.bottom_right.unwrap().1 - unit.top_left.unwrap().1) as u32 + 10,
+    };
+
+    let (anim_name, frames) = content;
+    let spritesheet = if columns == 0 || columns >= frames.len() {
+        let mut sheet = image::RgbaImage::new(
+            frame_rect.width * (frames.len() as u32),
+            frame_rect.height,
+        );
+
+        frames.into_iter().enumerate().for_each(|(idx, frame)| {
+            let x = (idx as u32) * frame_rect.width;
+            let y = 0;
+
+            if let Some(mut frame) = frame {
+                let cropped_frame_img = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
+            }
+        });
+
+        sheet
+    } else {
+        let mut sheet = image::RgbaImage::new(
+            frame_rect.width * (columns as u32),
+            frame_rect.height * ((frames.len() as f32 / columns as f32).ceil() as u32),
+        );
+
+        frames.into_iter().enumerate().for_each(|(idx, frame)| {
+            let x = ((idx % columns) as u32) * frame_rect.width;
+            let y = ((idx / columns) as u32) * frame_rect.height;
+
+            if let Some(mut frame) = frame {
+                let cropped_frame_img = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                imageops::overlay(&mut sheet, &cropped_frame_img, x as i64, y as i64);
+            }
+        });
+
+        sheet
+    };
+
+    let output_path = format!("output/anim-{anim_name}.png");
+    spritesheet.save(output_path).unwrap();
     Ok(())
 }

@@ -1,5 +1,12 @@
 use image::{self, ImageBuffer, Rgba};
 
+pub struct Rect {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
 pub fn load_source_image(unit_id: u32, input_path: &str) -> image::DynamicImage {
     let path = format!("{input_path}/unit_anime_{unit_id}.png");
     let img = image::open(path).unwrap();
@@ -67,11 +74,11 @@ impl OpacityExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 /// Extension trait for color bounds detection.
 pub trait ColorBoundsExt {
     /// Returns the bounding rectangle of pixels matching (or not matching) a color.
-    /// 
+    ///
     /// # Parameters
     /// * `color` - The RGBA color to search for
     /// * `find_color` - If true, finds pixels matching the color; if false, finds pixels NOT matching the color
-    /// 
+    ///
     /// # Returns
     /// Some((x, y, width, height)) of the bounding rectangle, or None if no matching pixels found.
     fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<(u32, u32, u32, u32)>;
@@ -90,7 +97,7 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
             for x in 0..width {
                 let pixel = *self.get_pixel(x, y);
                 let matches = if find_color { pixel == color } else { pixel != color };
-                
+
                 if matches {
                     min_x = min_x.min(x);
                     min_y = min_y.min(y);
