@@ -22,7 +22,6 @@ pub struct PartData {
 }
 
 pub type FrameParts = Vec<PartData>;
-pub type Point = (i32, i32);
 
 pub fn read_file(unit_id: u32, input_path: &str) -> io::Result<BufReader<File>> {
     let file_path = format!("{input_path}/unit_cgg_{unit_id}.csv");

@@ -154,32 +154,39 @@ fn main() -> std::result::Result<(), String> {
                             {
                                 // TODO: deal with `include_empty` - this indicates we should have frames with nothing
                                 Some(rect) => {
-                                    // target_img
-                                    //     .save(format!("anim-{anim_name}-{frame_num}.png"))
-                                    //     .unwrap();
-
                                     println!(
                                         "frame[{frame_num}] rect: [{rect:?}] delay[{}]",
                                         frame.delay
                                     );
 
                                     match (&unit.top_left, &unit.bottom_right) {
-                                        (Some((tl_x, tl_y)), Some((br_x, br_y))) => {
-                                            let (x, y, width, height) = rect;
-                                            unit.top_left = Some((
-                                                (*tl_x).min(x as i32),
-                                                (*tl_y).min(y as i32),
+                                        (Some(top_left), Some(bottom_right)) => {
+                                            let ffbetool::imageops::Rect {
+                                                x,
+                                                y,
+                                                width,
+                                                height,
+                                            } = rect;
+
+                                            unit.top_left = Some(ffbetool::imageops::Point::new(
+                                                (top_left.x()).min(x as i32),
+                                                (top_left.y()).min(y as i32),
                                             ));
 
-                                            unit.bottom_right = Some((
-                                                (*br_x).max(x as i32 + width as i32),
-                                                (*br_y).max(y as i32 + height as i32),
+                                            unit.bottom_right = Some(ffbetool::imageops::Point::new(
+                                                (bottom_right.x()).max(x as i32 + width as i32),
+                                                (bottom_right.y()).max(y as i32 + height as i32),
                                             ));
                                         }
                                         _ => {
-                                            let (x, y, width, height) = rect;
-                                            unit.top_left = Some((x as i32, y as i32));
-                                            unit.bottom_right = Some((x as i32 + width as i32, y as i32 + height as i32));
+                                            let ffbetool::imageops::Rect {
+                                                x,
+                                                y,
+                                                width,
+                                                height,
+                                            } = rect;
+                                            unit.top_left = Some(ffbetool::imageops::Point::new(x as i32, y as i32));
+                                            unit.bottom_right = Some(ffbetool::imageops::Point::new(x as i32 + width as i32, y as i32 + height as i32));
                                         }
                                     }
 
@@ -207,10 +214,10 @@ fn main() -> std::result::Result<(), String> {
     };
 
     let frame_rect = ffbetool::imageops::Rect {
-        x: unit.top_left.unwrap().0 as u32,
-        y: unit.top_left.unwrap().1 as u32,
-        width: (unit.bottom_right.unwrap().0 - unit.top_left.unwrap().0) as u32 + 10,
-        height: (unit.bottom_right.unwrap().1 - unit.top_left.unwrap().1) as u32 + 10,
+        x: unit.top_left.expect("top_left should have a value here").x() as u32,
+        y: unit.top_left.expect("top_left should have a value here").y() as u32,
+        width: (unit.bottom_right.expect("bottom_right should have a value here").x() - unit.top_left.expect("top_left should have a value here").x()) as u32 + 10,
+        height: (unit.bottom_right.expect("bottom_right should have a value here").y() - unit.top_left.expect("top_left should have a value here").y()) as u32 + 10,
     };
 
     let (anim_name, frames) = content;
@@ -250,7 +257,7 @@ fn main() -> std::result::Result<(), String> {
         sheet
     };
 
-    let output_path = format!("output/anim-{anim_name}.png");
+    let output_path = format!("output/{unit_id}-{anim_name}.png");
     spritesheet.save(output_path).unwrap();
     Ok(())
 }

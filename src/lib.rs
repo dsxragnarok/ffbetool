@@ -10,8 +10,8 @@ pub type Frames = Vec<cgg::FrameParts>;
 pub struct Unit {
     pub id: u32,
     pub frames: Frames,
-    pub top_left: Option<cgg::Point>,
-    pub bottom_right: Option<cgg::Point>,
+    pub top_left: Option<imageops::Point>,
+    pub bottom_right: Option<imageops::Point>,
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub x_offset: Option<i32>,

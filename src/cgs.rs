@@ -4,6 +4,7 @@ use std::io::{self, BufReader};
 use image::{ImageBuffer, Rgba};
 
 use crate::cgg;
+use crate::imageops::Rect;
 
 #[derive(Clone)]
 pub struct Frame {
@@ -17,7 +18,7 @@ pub struct Frame {
 pub struct CompositeFrame {
     pub frame_idx: usize,
     pub image: ImageBuffer<Rgba<u8>, Vec<u8>>,
-    pub rect: (u32, u32, u32, u32),
+    pub rect: Rect,
     pub delay: u32,
 }
 
@@ -25,7 +26,7 @@ impl Frame {
     pub fn composite(
         self,
         image: ImageBuffer<Rgba<u8>, Vec<u8>>,
-        rect: (u32, u32, u32, u32),
+        rect: Rect,
     ) -> CompositeFrame {
         let Frame {
             frame_idx, delay, ..

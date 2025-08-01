@@ -1,10 +1,27 @@
 use image::{self, ImageBuffer, Rgba};
 
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Rect {
     pub x: u32,
     pub y: u32,
     pub width: u32,
     pub height: u32,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Point(i32, i32);
+impl Point {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self(x, y)
+    }
+
+    pub fn x(self) -> i32 {
+        self.0
+    }
+
+    pub fn y(self) -> i32 {
+        self.1
+    }
 }
 
 pub fn load_source_image(unit_id: u32, input_path: &str) -> image::DynamicImage {
@@ -81,11 +98,11 @@ pub trait ColorBoundsExt {
     ///
     /// # Returns
     /// Some((x, y, width, height)) of the bounding rectangle, or None if no matching pixels found.
-    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<(u32, u32, u32, u32)>;
+    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<Rect>;
 }
 
 impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
-    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<(u32, u32, u32, u32)> {
+    fn get_color_bounds_rect(&self, color: Rgba<u8>, find_color: bool) -> Option<Rect> {
         let (width, height) = self.dimensions();
         let mut min_x = width;
         let mut min_y = height;
@@ -109,7 +126,12 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
         }
 
         if found {
-            Some((min_x, min_y, max_x - min_x + 1, max_y - min_y + 1))
+            Some(Rect {
+                x: min_x,
+                y: min_y,
+                width: max_x - min_x + 1,
+                height: max_y - min_y + 1,
+            })
         } else {
             None
         }
