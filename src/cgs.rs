@@ -1,14 +1,42 @@
 use std::fs::File;
 use std::io::{self, BufReader};
 
+use image::{ImageBuffer, Rgba};
+
 use crate::cgg;
 
+#[derive(Clone)]
 pub struct Frame {
     pub frame_idx: usize,
     pub parts: cgg::FrameParts,
     pub x: i32,
     pub y: i32,
     pub delay: u32,
+}
+
+pub struct CompositeFrame {
+    pub frame_idx: usize,
+    pub image: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    pub rect: (u32, u32, u32, u32),
+    pub delay: u32,
+}
+
+impl Frame {
+    pub fn composite(
+        self,
+        image: ImageBuffer<Rgba<u8>, Vec<u8>>,
+        rect: (u32, u32, u32, u32),
+    ) -> CompositeFrame {
+        let Frame {
+            frame_idx, delay, ..
+        } = self;
+        CompositeFrame {
+            frame_idx,
+            image,
+            rect,
+            delay,
+        }
+    }
 }
 
 /// frame_index, x, y, delay

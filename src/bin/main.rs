@@ -82,7 +82,7 @@ fn main() -> std::result::Result<(), String> {
                         .collect();
 
                     let frame_data: Vec<_> = frames
-                        .iter()
+                        .into_iter()
                         .enumerate()
                         .map(|(frame_num, frame)| {
                             let mut target_img = image::RgbaImage::new(2000, 2000);
@@ -156,7 +156,7 @@ fn main() -> std::result::Result<(), String> {
                                         frame.delay
                                     );
                                     // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
-                                    Some((frame, target_img, rect, frame.delay))
+                                    Some(frame.composite(target_img, rect))
                                 }
                                 None => None,
                             }
