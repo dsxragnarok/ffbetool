@@ -1,5 +1,7 @@
 use image::{self, ImageBuffer, Rgba};
 
+use crate::cgs::CompositeFrame;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Rect {
     pub x: u32,
@@ -140,4 +142,25 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
             None
         }
     }
+}
+
+
+pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
+    let mut gif_frames = Vec::new();
+    for frame in frames {
+        if let Some(frame) = frame {
+            let gif_frame = image::Frame::from_parts(
+                frame.image,
+                0, 0,
+                image::Delay::from_numer_denom_ms(frame.delay, 60),
+            );
+            gif_frames.push(gif_frame);
+        }
+    }
+    let mut buffer = std::io::BufWriter::new(std::fs::File::create(output_path).unwrap());
+    let mut encoder = image::codecs::gif::GifEncoder::new(&mut buffer);
+    encoder.set_repeat(image::codecs::gif::Repeat::Infinite).unwrap();
+    encoder.encode_frames(gif_frames).unwrap();
+
+    print!("Successfully saved animated gif: {output_path}");
 }

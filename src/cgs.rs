@@ -15,6 +15,7 @@ pub struct Frame {
     pub delay: u32,
 }
 
+#[derive(Clone)]
 pub struct CompositeFrame {
     pub frame_idx: usize,
     pub image: ImageBuffer<Rgba<u8>, Vec<u8>>,
