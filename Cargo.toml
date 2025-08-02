@@ -14,5 +14,6 @@ name = "ffbetool"
 path = "src/bin/main.rs"
 
 [dependencies]
-image = "0.25.6"
+apng = "0.3.4"
+image = "0.24.9"
 log = "0.4.27"
