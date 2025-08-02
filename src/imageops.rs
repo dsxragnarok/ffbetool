@@ -1,3 +1,4 @@
+use apng::load_dynamic_image;
 use image::{self, ImageBuffer, Rgba};
 
 use crate::cgs::CompositeFrame;
@@ -144,6 +145,34 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
     }
 }
 
+
+pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
+    use apng::PNGImage;
+    use image;
+
+    let mut png_images: Vec<PNGImage> = Vec::new();
+    for frame in frames {
+        if let Some(frame) = frame {
+            let fr_img = image::DynamicImage::from(frame.image);
+            let png_image = load_dynamic_image(fr_img).expect("to be able to load frame image as png");
+            png_images.push(png_image);
+        }
+    }
+
+    let mut out = std::io::BufWriter::new(std::fs::File::create(output_path).unwrap());
+    let config = apng::create_config(&png_images, None).unwrap();
+    let mut encoder = apng::Encoder::new(&mut out, config).unwrap();
+    let frame = apng::Frame {
+        delay_num: Some(1),
+        delay_den: Some(60),
+        ..Default::default()
+    };
+
+    match encoder.encode_all(png_images, Some(&frame)) {
+        Ok(_) => println!("Successfully saved animated APNG: {output_path}"),
+        Err(e) => println!("Failed to save animated APNG: {e}"),
+    }
+}
 
 pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
     let mut gif_frames = Vec::new();

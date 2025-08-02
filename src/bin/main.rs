@@ -6,11 +6,27 @@ use ffbetool::{
 use image::imageops;
 use std::io::BufRead;
 
+enum AnimFileType {
+    Gif,
+    Apng,
+    None,
+}
+
+impl From<&str> for AnimFileType {
+    fn from(value: &str) -> Self {
+        match value {
+            "apng" => AnimFileType::Apng,
+            "gif" => AnimFileType::Gif,
+            _ => AnimFileType::None,
+        }
+    }
+}
+
 fn main() -> std::result::Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 3 {
-        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns> <g>");
+        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns> <gif|apng>");
         return Ok(());
     }
 
@@ -22,12 +38,10 @@ fn main() -> std::result::Result<(), String> {
     } else {
         args[4].parse().expect("columns should be numerical value")
     };
-    let gif: bool = if args.len() < 6 {
-        false
-    } else if args[5] == "gif" || args[5] == "g" {
-            true
+    let anim_file_type: AnimFileType  = if args.len() < 6 {
+        AnimFileType::None
     } else {
-        false
+        AnimFileType::from(args[5].as_str())
     };
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
@@ -276,12 +290,24 @@ fn main() -> std::result::Result<(), String> {
         }
     }).collect();
 
-    if gif {
-        let (anim_name, frames) = content.clone();
-        let output_path = format!("output/{unit_id}-{anim_name}.gif");
-        ffbetool::imageops::encode_animated_gif(frames, &output_path);
-        // return Ok(());
+    match anim_file_type {
+        AnimFileType::Apng => {
+            let (anim_name, frames) = content.clone();
+            let output_path = format!("output/{unit_id}-{anim_name}.apng");
+            ffbetool::imageops::encode_animated_apng(frames, &output_path);
+        },
+        AnimFileType::Gif => {
+            let (anim_name, frames) = content.clone();
+            let output_path = format!("output/{unit_id}-{anim_name}.gif");
+            ffbetool::imageops::encode_animated_gif(frames, &output_path);
+        },
+        AnimFileType::None => {}
     }
+    // if gif {
+    //     let (anim_name, frames) = content.clone();
+    //     let output_path = format!("output/{unit_id}-{anim_name}.gif");
+    //     ffbetool::imageops::encode_animated_gif(frames, &output_path);
+    // }
 
     let (anim_name, frames) = content;
     let spritesheet = if columns == 0 || columns >= frames.len() {
