@@ -269,6 +269,13 @@ fn main() -> std::result::Result<(), String> {
         }
     }).collect();
 
+    if gif {
+        let (anim_name, frames) = content.clone();
+        let output_path = format!("output/{unit_id}-{anim_name}.gif");
+        ffbetool::imageops::encode_animated_gif(frames, &output_path);
+        // return Ok(());
+    }
+
     let (anim_name, frames) = content;
     let spritesheet = if columns == 0 || columns >= frames.len() {
         let mut sheet =
