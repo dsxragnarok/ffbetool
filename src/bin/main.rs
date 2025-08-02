@@ -136,11 +136,18 @@ fn main() -> std::result::Result<(), String> {
                                 }
 
                                 if *rotate != 0 {
-                                    println!(" -- Rotate [{rotate}] -- ");
+                                    println!(" -- Rotate Counter-Clockwise [{rotate}] -- ");
+                                    // Note: The values provided by the cgg file for rotation
+                                    //       is for counter-clockwise rotation.
+                                    //       The `imageops` crate rotates clockwise. So,
+                                    //       we need to convert this to clockwise rotation.
+                                    //       90 -> 270
+                                    //       180 -> 180
+                                    //       270 | -90 -> 90
                                     part_img = match rotate {
-                                        90 => imageops::rotate90(&part_img),
+                                        270 | -90 => imageops::rotate90(&part_img),
                                         180 => imageops::rotate180(&part_img),
-                                        270 | -90 => imageops::rotate270(&part_img),
+                                        90 => imageops::rotate270(&part_img),
                                         _ => part_img,
                                     };
                                 }
