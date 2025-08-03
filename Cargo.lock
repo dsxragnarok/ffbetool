@@ -140,6 +140,7 @@ dependencies = [
  "apng",
  "image",
  "log",
+ "png",
 ]
 
 [[package]]

@@ -81,10 +81,10 @@ fn main() -> std::result::Result<(), String> {
         Some(anim_name) => {
             match cgs::read_file(unit_id, anim_name, input_path) {
                 Ok(reader) => {
-                    let cgs_frames_meta = reader.lines().enumerate().filter_map(
-                        |(row, line_result)| match line_result {
+                    let cgs_frames_meta = reader.lines().filter_map(
+                        |line_result| match line_result {
                             Ok(line) => {
-                                let cgs_meta = cgs::process(&line, row);
+                                let cgs_meta = cgs::process(&line);
                                 cgs_meta
                             }
                             Err(err) => {
@@ -293,21 +293,16 @@ fn main() -> std::result::Result<(), String> {
     match anim_file_type {
         AnimFileType::Apng => {
             let (anim_name, frames) = content.clone();
-            let output_path = format!("output/{unit_id}-{anim_name}.apng");
+            let output_path = format!("output/{unit_id}-{anim_name}-anim.png");
             ffbetool::imageops::encode_animated_apng(frames, &output_path);
         },
         AnimFileType::Gif => {
             let (anim_name, frames) = content.clone();
-            let output_path = format!("output/{unit_id}-{anim_name}.gif");
+            let output_path = format!("output/{unit_id}-{anim_name}-anim.gif");
             ffbetool::imageops::encode_animated_gif(frames, &output_path);
         },
         AnimFileType::None => {}
     }
-    // if gif {
-    //     let (anim_name, frames) = content.clone();
-    //     let output_path = format!("output/{unit_id}-{anim_name}.gif");
-    //     ffbetool::imageops::encode_animated_gif(frames, &output_path);
-    // }
 
     let (anim_name, frames) = content;
     let spritesheet = if columns == 0 || columns >= frames.len() {
