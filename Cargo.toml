@@ -18,3 +18,4 @@ apng = { version = "0.3.4", features = ["png"] }
 image = "0.24.9"
 png = "0.17.16"
 log = "0.4.27"
+clap = { version = "4.0", features = ["derive"] }

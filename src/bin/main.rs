@@ -5,6 +5,51 @@ use ffbetool::{
 };
 use image::imageops;
 use std::io::BufRead;
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(name = "ffbetool")]
+#[command(about = "Tool to assemble Final Fantasy Brave Exvius sprite sheets")]
+struct Args {
+    /// The unit id
+    uid: u32,
+
+    /// The animation name
+    #[arg(short = 'a', long = "anim")]
+    anim: Option<String>,
+
+    /// The number of columns
+    #[arg(short = 'c', long = "columns", default_value = "0")]
+    columns: usize,
+
+    /// Include empty frames
+    #[arg(short = 'e', long = "empty")]
+    include_empty: bool,
+
+    /// Verbose logs
+    #[arg(short = 'v', long = "verbose")]
+    verbose: bool,
+
+    /// Save json file
+    #[arg(short = 'j', long = "json")]
+    save_json: bool,
+
+    /// Save animated gif
+    #[arg(long = "gif")]
+    save_gif: bool,
+
+    /// Save animated png (APNG)
+    #[arg(long = "apng")]
+    save_apng: bool,
+
+    /// The source input directory
+    #[arg(short = 'i', long = "input", default_value = ".")]
+    input_dir: String,
+
+    /// The output directory
+    #[arg(short = 'o', long = "output", default_value = ".")]
+    output_dir: String,
+}
 
 enum AnimFileType {
     Gif,
@@ -23,25 +68,17 @@ impl From<&str> for AnimFileType {
 }
 
 fn main() -> std::result::Result<(), String> {
-    let args: Vec<String> = std::env::args().collect();
+    let args = Args::parse();
 
-    if args.len() < 3 {
-        eprintln!("usage: ffbetool <unit_id> <cgg-file> <anim-name> <columns> <gif|apng>");
-        return Ok(());
-    }
+    let unit_id = args.uid;
+    let input_path = &args.input_dir;
+    let anim_name = args.anim.as_deref();
+    let columns = args.columns;
 
-    let unit_id: u32 = args[1].parse().expect("unit_id should be numerical value");
-    let input_path = &args[2];
-    let anim_name = if args.len() < 4 { None } else { Some(&args[3]) };
-    let columns = if args.len() < 5 {
-        0
-    } else {
-        args[4].parse().expect("columns should be numerical value")
-    };
-    let anim_file_type: AnimFileType  = if args.len() < 6 {
-        AnimFileType::None
-    } else {
-        AnimFileType::from(args[5].as_str())
+    let anim_file_type = match (args.save_gif, args.save_apng) {
+        (true, _) => AnimFileType::Gif,
+        (_, true) => AnimFileType::Apng,
+        _ => AnimFileType::None,
     };
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
@@ -293,12 +330,12 @@ fn main() -> std::result::Result<(), String> {
     match anim_file_type {
         AnimFileType::Apng => {
             let (anim_name, frames) = content.clone();
-            let output_path = format!("output/{unit_id}-{anim_name}-anim.png");
+            let output_path = format!("{}/{unit_id}-{anim_name}-anim.png", args.output_dir);
             ffbetool::imageops::encode_animated_apng(frames, &output_path);
         },
         AnimFileType::Gif => {
             let (anim_name, frames) = content.clone();
-            let output_path = format!("output/{unit_id}-{anim_name}-anim.gif");
+            let output_path = format!("{}/{unit_id}-{anim_name}-anim.gif", args.output_dir);
             ffbetool::imageops::encode_animated_gif(frames, &output_path);
         },
         AnimFileType::None => {}
@@ -337,7 +374,7 @@ fn main() -> std::result::Result<(), String> {
         sheet
     };
 
-    let output_path = format!("output/{unit_id}-{anim_name}.png");
+    let output_path = format!("{}/{unit_id}-{anim_name}.png", args.output_dir);
     spritesheet.save(output_path).unwrap();
     Ok(())
 }
