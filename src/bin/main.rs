@@ -1,13 +1,12 @@
+use clap::Parser;
 use ffbetool::{
-    self,
+    self, FfbeError,
     cgg::{self, PartData},
     cgs,
     imageops::{BlendExt, ColorBoundsExt, OpacityExt},
-    FfbeError,
 };
 use image::imageops;
 use std::io::BufRead;
-use clap::Parser;
 
 #[derive(Parser)]
 #[command(name = "ffbetool")]
@@ -126,8 +125,8 @@ fn main() -> ffbetool::Result<()> {
         Some(anim_name) => {
             match cgs::read_file(unit_id, anim_name, input_path) {
                 Ok(reader) => {
-                    let cgs_frames_meta = reader.lines().filter_map(
-                        |line_result| match line_result {
+                    let cgs_frames_meta =
+                        reader.lines().filter_map(|line_result| match line_result {
                             Ok(line) => {
                                 let cgs_meta = cgs::process(&line);
                                 cgs_meta
@@ -136,8 +135,7 @@ fn main() -> ffbetool::Result<()> {
                                 eprintln!("failed to read cgs line: {err}");
                                 None
                             }
-                        },
-                    );
+                        });
 
                     let frames: Vec<cgs::Frame> = cgs_frames_meta
                         .map(|meta| {
@@ -277,12 +275,17 @@ fn main() -> ffbetool::Result<()> {
                     (anim_name, frame_data)
                 }
                 Err(err) => {
-                    return Err(FfbeError::ParseError(format!("failed to process cgs file: {err}")));
+                    return Err(FfbeError::ParseError(format!(
+                        "failed to process cgs file: {err}"
+                    )));
                 }
             }
         }
         None => {
-            return Err(FfbeError::NotImplemented("`anim_name` not specified -- full directory processing not yet supported".to_string()));
+            return Err(FfbeError::NotImplemented(
+                "`anim_name` not specified -- full directory processing not yet supported"
+                    .to_string(),
+            ));
         }
     };
 
@@ -315,29 +318,36 @@ fn main() -> ffbetool::Result<()> {
             + 10,
     };
 
-    content.1 = content.1.into_iter().map(|frame| {
-        match frame {
+    content.1 = content
+        .1
+        .into_iter()
+        .map(|frame| match frame {
             Some(mut frame) => {
-                frame.image = imageops::crop(&mut frame.image, frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height).to_image();
+                frame.image = imageops::crop(
+                    &mut frame.image,
+                    frame_rect.x,
+                    frame_rect.y,
+                    frame_rect.width,
+                    frame_rect.height,
+                )
+                .to_image();
                 Some(frame)
             }
-            None => {
-                frame
-            }
-        }
-    }).collect();
+            None => frame,
+        })
+        .collect();
 
     match anim_file_type {
         AnimFileType::Apng => {
             let (anim_name, frames) = content.clone();
             let output_path = format!("{}/{unit_id}-{anim_name}-anim.png", args.output_dir);
             ffbetool::imageops::encode_animated_apng(frames, &output_path);
-        },
+        }
         AnimFileType::Gif => {
             let (anim_name, frames) = content.clone();
             let output_path = format!("{}/{unit_id}-{anim_name}-anim.gif", args.output_dir);
             ffbetool::imageops::encode_animated_gif(frames, &output_path);
-        },
+        }
         AnimFileType::None => {}
     }
 

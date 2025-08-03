@@ -2,10 +2,7 @@ use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
 use png;
 
-use crate::{
-    cgs::CompositeFrame,
-    error,
-};
+use crate::{cgs::CompositeFrame, error};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Rect {
@@ -153,7 +150,10 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 // list of PNGImage in order to create the config when the `create_config` is
 // only using the first image in that list. This causes us to have to loop through
 // our frames twice.
-pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &str) -> error::Result<()> {
+pub fn encode_animated_apng(
+    frames: Vec<Option<CompositeFrame>>,
+    output_path: &str,
+) -> error::Result<()> {
     let mut png_images: Vec<PNGImage> = Vec::new();
     for frame in frames.clone() {
         if let Some(frame) = frame {
@@ -164,7 +164,7 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
                     let msg = "Failed to load frame image as png";
                     eprint!("{msg}: {err}");
                     return Err(crate::FfbeError::ParseError(msg.into()));
-                },
+                }
             };
             png_images.push(png_image);
         }
@@ -185,7 +185,7 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
             };
             let apng_frame = apng::Frame {
                 delay_num: Some(frame.delay as u16), // Use frame's specific delay
-                delay_den: Some(60), // 60 FPS base
+                delay_den: Some(60),                 // 60 FPS base
                 ..Default::default()
             };
             if let Err(err) = encoder.write_frame(&png_image, apng_frame) {
@@ -200,21 +200,25 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
         Ok(_) => {
             println!("Successfully saved animated APNG: {output_path}");
             Ok(())
-        },
+        }
         Err(err) => {
             eprintln!("Failed to save animated APNG: {err}");
             Err(err.into())
-        },
+        }
     }
 }
 
-pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &str) -> error::Result<()> {
+pub fn encode_animated_gif(
+    frames: Vec<Option<CompositeFrame>>,
+    output_path: &str,
+) -> error::Result<()> {
     let mut gif_frames = Vec::new();
     for frame in frames {
         if let Some(frame) = frame {
             let gif_frame = image::Frame::from_parts(
                 frame.image,
-                0, 0,
+                0,
+                0,
                 image::Delay::from_numer_denom_ms(frame.delay, 60),
             );
             gif_frames.push(gif_frame);
