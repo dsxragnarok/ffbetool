@@ -20,7 +20,7 @@ Options:
         --gif                  Save animated gif
         --apng                 Save animated png (APNG)
     -i, --input <INPUT_DIR>    The source input directory [default: .]
-    -o, --output <OUTPUT_DIR>  The output directory [default: output]
+    -o, --output <OUTPUT_DIR>  The output directory [default: .]
     -h, --help                 Print help
 ```
 
@@ -32,3 +32,6 @@ Options:
 - [ ] User-defined input / output directory.
 - [ ] Process all cgs files for a given directory.
 - [ ] Reference the `data.json` for mapping between character name and ID.
+
+## Defects
+- [ ] Improper rotation handling of -270 and -180. [ref: 100004403_limit_atk](https://github.com/dsxragnarok/ffbe_asset_dump/blob/main/animated_gifs/unit_100004403_limitatk_opac.gif)
