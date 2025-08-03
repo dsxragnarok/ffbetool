@@ -289,29 +289,29 @@ fn main() -> ffbetool::Result<()> {
     let frame_rect = ffbetool::imageops::Rect {
         x: unit
             .top_left
-            .expect("top_left should have a value here")
+            .ok_or(FfbeError::MissingValue("top_left".to_string()))?
             .x() as u32,
         y: unit
             .top_left
-            .expect("top_left should have a value here")
+            .ok_or(FfbeError::MissingValue("top_left".to_string()))?
             .y() as u32,
-        width: (unit
+        width: unit
             .bottom_right
-            .expect("bottom_right should have a value here")
-            .x()
+            .ok_or(FfbeError::MissingValue("bottom_right".to_string()))?
+            .x() as u32
             - unit
                 .top_left
-                .expect("top_left should have a value here")
-                .x()) as u32
+                .ok_or(FfbeError::MissingValue("top_left".to_string()))?
+                .x() as u32
             + 10,
-        height: (unit
+        height: unit
             .bottom_right
-            .expect("bottom_right should have a value here")
-            .y()
+            .ok_or(FfbeError::MissingValue("bottom_right".to_string()))?
+            .y() as u32
             - unit
                 .top_left
-                .expect("top_left should have a value here")
-                .y()) as u32
+                .ok_or(FfbeError::MissingValue("top_left".to_string()))?
+                .y() as u32
             + 10,
     };
 

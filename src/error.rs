@@ -11,6 +11,7 @@ pub enum FfbeError {
     FileNotFound(String),
     InvalidInput(String),
     NotImplemented(String),
+    MissingValue(String),
 }
 
 impl fmt::Display for FfbeError {
@@ -23,6 +24,7 @@ impl fmt::Display for FfbeError {
             FfbeError::FileNotFound(path) => write!(f, "File not found: {}", path),
             FfbeError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
             FfbeError::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
+            FfbeError::MissingValue(msg) => write!(f, "Missing value: {}", msg),
         }
     }
 }

@@ -51,7 +51,8 @@ pub fn process(text: &str, row: usize) -> Option<FrameParts> {
         return None;
     }
 
-    let msg = "should be a numerical value";
+    let msg_prefix = "failed to parse";
+    let msg_suffix = "should be a numerical value";
 
     let parts: Vec<PartData> = params
         .chunks(chunk_size)
@@ -71,17 +72,17 @@ pub fn process(text: &str, row: usize) -> Option<FrameParts> {
                 page_id,
             ] => Some(PartData {
                 anchor,
-                x_pos: x_pos.parse().expect(&format!("{x_pos} {msg}")),
-                y_pos: y_pos.parse().expect(&format!("{y_pos} {msg}")),
-                next_type: next_type.parse().expect(&format!("{next_type} {msg}")),
-                blend_mode: blend_mode.parse().expect(&format!("{blend_mode} {msg}")),
-                opacity: opacity.parse().expect(&format!("{opacity} {msg}")),
-                rotate: rotate.parse().expect(&format!("{rotate} {msg}")),
-                img_x: img_x.parse().expect(&format!("{img_x} {msg}")),
-                img_y: img_y.parse().expect(&format!("{img_y} {msg}")),
-                img_width: img_width.parse().expect(&format!("{img_width} {msg}")),
-                img_height: img_height.parse().expect(&format!("{img_height} {msg}")),
-                page_id: page_id.parse().expect(&format!("{page_id} {msg}")),
+                x_pos: x_pos.parse().expect(&format!("{msg_prefix} x_pos: [{x_pos}] {msg_suffix}")),
+                y_pos: y_pos.parse().expect(&format!("{msg_prefix} y_pos: [{y_pos}] {msg_suffix}")),
+                next_type: next_type.parse().expect(&format!("{msg_prefix} next_type: [{next_type}] {msg_suffix}")),
+                blend_mode: blend_mode.parse().expect(&format!("{msg_prefix} blend_mode: [{blend_mode}] {msg_suffix}")),
+                opacity: opacity.parse().expect(&format!("{msg_prefix} opacity: [{opacity}] {msg_suffix}")),
+                rotate: rotate.parse().expect(&format!("{msg_prefix} rotate: [{rotate}] {msg_suffix}")),
+                img_x: img_x.parse().expect(&format!("{msg_prefix} img_x: [{img_x}] {msg_suffix}")),
+                img_y: img_y.parse().expect(&format!("{msg_prefix} img_y: [{img_y}] {msg_suffix}")),
+                img_width: img_width.parse().expect(&format!("{msg_prefix} img_width: [{img_width}] {msg_suffix}")),
+                img_height: img_height.parse().expect(&format!("{msg_prefix} img_height: [{img_height}] {msg_suffix}")),
+                page_id: page_id.parse().expect(&format!("{msg_prefix} page_id: [{page_id}] {msg_suffix}")),
                 index,
                 flip_x: *next_type == "1" || *next_type == "3",
                 flip_y: *next_type == "2" || *next_type == "3",
