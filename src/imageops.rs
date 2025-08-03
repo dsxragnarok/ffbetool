@@ -158,7 +158,14 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
     for frame in frames.clone() {
         if let Some(frame) = frame {
             let fr_img = image::DynamicImage::from(frame.image);
-            let png_image = load_dynamic_image(fr_img).expect("to be able to load frame image as png");
+            let png_image = match load_dynamic_image(fr_img) {
+                Ok(png_image) => png_image,
+                Err(err) => {
+                    let msg = "Failed to load frame image as png";
+                    eprint!("{msg}: {err}");
+                    return Err(crate::FfbeError::ParseError(msg.into()));
+                },
+            };
             png_images.push(png_image);
         }
     }
@@ -181,7 +188,11 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
                 delay_den: Some(60), // 60 FPS base
                 ..Default::default()
             };
-            encoder.write_frame(&png_image, apng_frame).expect("to successfully write apng frame");
+            if let Err(err) = encoder.write_frame(&png_image, apng_frame) {
+                let msg = "Failed to write APNG frame";
+                eprint!("{msg}: {err}");
+                return Err(crate::FfbeError::ParseError(msg.into()));
+            }
         }
     }
 
@@ -191,7 +202,7 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
             Ok(())
         },
         Err(err) => {
-            println!("Failed to save animated APNG: {err}");
+            eprintln!("Failed to save animated APNG: {err}");
             Err(err.into())
         },
     }
