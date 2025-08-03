@@ -1,6 +1,9 @@
 pub mod cgg;
 pub mod cgs;
+pub mod error;
 pub mod imageops;
+
+pub use error::{FfbeError, Result};
 
 // TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
 
