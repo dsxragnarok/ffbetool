@@ -1,5 +1,6 @@
-use apng::load_dynamic_image;
+use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
+use png;
 
 use crate::cgs::CompositeFrame;
 
@@ -145,13 +146,13 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
     }
 }
 
-
+// TODO: Optimize this function. It's strange that we need to pass in a full
+// list of PNGImage in order to create the config when the `create_config` is
+// only using the first image in that list. This causes us to have to loop through
+// our frames twice.
 pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
-    use apng::PNGImage;
-    use image;
-
     let mut png_images: Vec<PNGImage> = Vec::new();
-    for frame in frames {
+    for frame in frames.clone() {
         if let Some(frame) = frame {
             let fr_img = image::DynamicImage::from(frame.image);
             let png_image = load_dynamic_image(fr_img).expect("to be able to load frame image as png");
@@ -162,13 +163,26 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
     let mut out = std::io::BufWriter::new(std::fs::File::create(output_path).unwrap());
     let config = apng::create_config(&png_images, None).unwrap();
     let mut encoder = apng::Encoder::new(&mut out, config).unwrap();
-    let frame = apng::Frame {
-        delay_num: Some(1),
-        delay_den: Some(60),
-        ..Default::default()
-    };
 
-    match encoder.encode_all(png_images, Some(&frame)) {
+    for frame_opt in frames {
+        if let Some(frame) = frame_opt {
+            let png_image = PNGImage {
+                width: frame.image.width(),
+                height: frame.image.height(),
+                data: frame.image.as_raw().clone(),
+                color_type: png::ColorType::Rgba,
+                bit_depth: png::BitDepth::Sixteen,
+            };
+            let apng_frame = apng::Frame {
+                delay_num: Some(frame.delay as u16), // Use frame's specific delay
+                delay_den: Some(60), // 60 FPS base
+                ..Default::default()
+            };
+            encoder.write_frame(&png_image, apng_frame).expect("to successfully write apng frame");
+        }
+    }
+
+    match encoder.finish_encode() {
         Ok(_) => println!("Successfully saved animated APNG: {output_path}"),
         Err(e) => println!("Failed to save animated APNG: {e}"),
     }

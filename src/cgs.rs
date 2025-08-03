@@ -51,7 +51,7 @@ pub fn read_file(unit_id: u32, anim_name: &str, input_path: &str) -> io::Result<
     Ok(reader)
 }
 
-pub fn process(text: &str, row: usize) -> Option<CgsMeta> {
+pub fn process(text: &str) -> Option<CgsMeta> {
     let params = text
         .split(",")
         .take_while(|s| !s.is_empty())
