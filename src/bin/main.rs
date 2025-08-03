@@ -200,13 +200,10 @@ fn main() -> ffbetool::Result<()> {
                                     //       is for counter-clockwise rotation.
                                     //       The `imageops` crate rotates clockwise. So,
                                     //       we need to convert this to clockwise rotation.
-                                    //       90 -> 270
-                                    //       180 -> 180
-                                    //       270 | -90 -> 90
                                     part_img = match rotate {
                                         270 | -90 => imageops::rotate90(&part_img),
-                                        180 => imageops::rotate180(&part_img),
-                                        90 => imageops::rotate270(&part_img),
+                                        180 | -180 => imageops::rotate180(&part_img),
+                                        90 | -270 => imageops::rotate270(&part_img),
                                         _ => part_img,
                                     };
                                 }

@@ -34,4 +34,4 @@ Options:
 - [ ] Reference the `data.json` for mapping between character name and ID.
 
 ## Defects
-- [ ] Improper rotation handling of -270 and -180. [ref: 100004403_limit_atk](https://github.com/dsxragnarok/ffbe_asset_dump/blob/main/animated_gifs/unit_100004403_limitatk_opac.gif)
+- [x] Improper rotation handling of -270 and -180. [ref: 100004403_limit_atk](https://github.com/dsxragnarok/ffbe_asset_dump/blob/main/animated_gifs/unit_100004403_limitatk_opac.gif)
