@@ -2,7 +2,10 @@ use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
 use png;
 
-use crate::cgs::CompositeFrame;
+use crate::{
+    cgs::CompositeFrame,
+    error,
+};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Rect {
@@ -28,10 +31,10 @@ impl Point {
     }
 }
 
-pub fn load_source_image(unit_id: u32, input_path: &str) -> image::DynamicImage {
+pub fn load_source_image(unit_id: u32, input_path: &str) -> error::Result<image::DynamicImage> {
     let path = format!("{input_path}/unit_anime_{unit_id}.png");
-    let img = image::open(path).unwrap();
-    img
+    let img = image::open(path)?;
+    Ok(img)
 }
 
 /// Extension trait for applying custom blend operations to RGBA images.
@@ -150,7 +153,7 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 // list of PNGImage in order to create the config when the `create_config` is
 // only using the first image in that list. This causes us to have to loop through
 // our frames twice.
-pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
+pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &str) -> error::Result<()> {
     let mut png_images: Vec<PNGImage> = Vec::new();
     for frame in frames.clone() {
         if let Some(frame) = frame {
@@ -160,9 +163,9 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
         }
     }
 
-    let mut out = std::io::BufWriter::new(std::fs::File::create(output_path).unwrap());
-    let config = apng::create_config(&png_images, None).unwrap();
-    let mut encoder = apng::Encoder::new(&mut out, config).unwrap();
+    let mut out = std::io::BufWriter::new(std::fs::File::create(output_path)?);
+    let config = apng::create_config(&png_images, None)?;
+    let mut encoder = apng::Encoder::new(&mut out, config)?;
 
     for frame_opt in frames {
         if let Some(frame) = frame_opt {
@@ -183,12 +186,18 @@ pub fn encode_animated_apng(frames: Vec<Option<CompositeFrame>>, output_path: &s
     }
 
     match encoder.finish_encode() {
-        Ok(_) => println!("Successfully saved animated APNG: {output_path}"),
-        Err(e) => println!("Failed to save animated APNG: {e}"),
+        Ok(_) => {
+            println!("Successfully saved animated APNG: {output_path}");
+            Ok(())
+        },
+        Err(err) => {
+            println!("Failed to save animated APNG: {err}");
+            Err(err.into())
+        },
     }
 }
 
-pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &str) {
+pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &str) -> error::Result<()> {
     let mut gif_frames = Vec::new();
     for frame in frames {
         if let Some(frame) = frame {
@@ -200,10 +209,12 @@ pub fn encode_animated_gif(frames: Vec<Option<CompositeFrame>>, output_path: &st
             gif_frames.push(gif_frame);
         }
     }
-    let mut buffer = std::io::BufWriter::new(std::fs::File::create(output_path).unwrap());
+    let mut buffer = std::io::BufWriter::new(std::fs::File::create(output_path)?);
     let mut encoder = image::codecs::gif::GifEncoder::new(&mut buffer);
-    encoder.set_repeat(image::codecs::gif::Repeat::Infinite).unwrap();
-    encoder.encode_frames(gif_frames).unwrap();
+    encoder.set_repeat(image::codecs::gif::Repeat::Infinite)?;
+    encoder.encode_frames(gif_frames)?;
 
     print!("Successfully saved animated gif: {output_path}");
+
+    Ok(())
 }

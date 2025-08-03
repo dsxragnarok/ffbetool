@@ -1,7 +1,9 @@
 use ffbetool::{
+    self,
     cgg::{self, PartData},
     cgs,
     imageops::{BlendExt, ColorBoundsExt, OpacityExt},
+    FfbeError,
 };
 use image::imageops;
 use std::io::BufRead;
@@ -67,7 +69,7 @@ impl From<&str> for AnimFileType {
     }
 }
 
-fn main() -> std::result::Result<(), String> {
+fn main() -> ffbetool::Result<()> {
     let args = Args::parse();
 
     let unit_id = args.uid;
@@ -102,7 +104,7 @@ fn main() -> std::result::Result<(), String> {
         }
         Err(err) => {
             eprintln!("failed to process cgg file: {err}");
-            return Err(err.to_string());
+            return Err(err.into());
         }
     };
 
@@ -112,7 +114,13 @@ fn main() -> std::result::Result<(), String> {
         ..Default::default()
     };
 
-    let src_img = ffbetool::imageops::load_source_image(unit_id, input_path);
+    let src_img = match ffbetool::imageops::load_source_image(unit_id, input_path) {
+        Ok(img) => img,
+        Err(err) => {
+            eprintln!("failed to load source image: {err}");
+            return Err(err.into());
+        }
+    };
 
     let mut content = match anim_name {
         Some(anim_name) => {
@@ -272,17 +280,12 @@ fn main() -> std::result::Result<(), String> {
                     (anim_name, frame_data)
                 }
                 Err(err) => {
-                    eprintln!("failed to process cgs file: {err}");
-                    return Err(err.to_string());
+                    return Err(FfbeError::ParseError(format!("failed to process cgs file: {err}")));
                 }
             }
         }
         None => {
-            eprint!("`anim_name` not specified -- full directory processing not yet supported");
-            return Err(
-                "`anim_name` not specified -- full directory processing not yet supported"
-                    .to_string(),
-            );
+            return Err(FfbeError::NotImplemented("`anim_name` not specified -- full directory processing not yet supported".to_string()));
         }
     };
 
@@ -375,6 +378,6 @@ fn main() -> std::result::Result<(), String> {
     };
 
     let output_path = format!("{}/{unit_id}-{anim_name}.png", args.output_dir);
-    spritesheet.save(output_path).unwrap();
+    spritesheet.save(output_path)?;
     Ok(())
 }
