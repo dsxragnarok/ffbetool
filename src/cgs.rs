@@ -62,16 +62,18 @@ pub fn process(text: &str) -> Option<CgsMeta> {
     }
 
     match params[..] {
-        [frame_index, x, y, delay] => {
-            Some(CgsMeta(
-                frame_index
-                    .parse()
-                    .expect("failed to parse `frame_index`: should be numerical value"),
-                x.parse().expect("failed to parse `x` should be numerical value"),
-                y.parse().expect("failed to parse `y` should be numerical value"),
-                delay.parse().expect("failed to parse `delay` should be numerical value"),
-            ))
-        },
+        [frame_index, x, y, delay] => Some(CgsMeta(
+            frame_index
+                .parse()
+                .expect("failed to parse `frame_index`: should be numerical value"),
+            x.parse()
+                .expect("failed to parse `x` should be numerical value"),
+            y.parse()
+                .expect("failed to parse `y` should be numerical value"),
+            delay
+                .parse()
+                .expect("failed to parse `delay` should be numerical value"),
+        )),
         _ => None,
     }
 }
