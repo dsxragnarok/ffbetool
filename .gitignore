@@ -3,4 +3,7 @@
 /input-assets
 /output
 
+*.png
+*.gif
+
 .DS_Store
