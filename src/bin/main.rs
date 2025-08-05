@@ -4,6 +4,7 @@ use ffbetool::{
     cgg::{self, PartData},
     cgs,
     imageops::{BlendExt, ColorBoundsExt, OpacityExt},
+    validation,
 };
 use image::imageops;
 use std::io::BufRead;
@@ -81,6 +82,10 @@ fn main() -> ffbetool::Result<()> {
         (_, true) => AnimFileType::Apng,
         _ => AnimFileType::None,
     };
+    
+    // Validate inputs
+    validation::validate_input_args(unit_id, input_path, anim_name)?;
+    validation::validate_output_dir(&args.output_dir)?;
 
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
     let frames = match cgg::read_file(unit_id, input_path) {
