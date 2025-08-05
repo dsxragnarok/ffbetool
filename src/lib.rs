@@ -2,6 +2,7 @@ pub mod cgg;
 pub mod cgs;
 pub mod error;
 pub mod imageops;
+pub mod validation;
 
 pub use error::{FfbeError, Result};
 
