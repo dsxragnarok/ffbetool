@@ -1,8 +1,7 @@
+use crate::{cgs::CompositeFrame, error};
 use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
 use png;
-
-use crate::{cgs::CompositeFrame, error};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Rect {
@@ -150,49 +149,42 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 // list of PNGImage in order to create the config when the `create_config` is
 // only using the first image in that list. This causes us to have to loop through
 // our frames twice.
-pub fn encode_animated_apng(
-    frames: Vec<Option<CompositeFrame>>,
-    output_path: &str,
-) -> error::Result<()> {
+pub fn encode_animated_apng(frames: Vec<CompositeFrame>, output_path: &str) -> error::Result<()> {
     let mut png_images: Vec<PNGImage> = Vec::new();
     for frame in frames.clone() {
-        if let Some(frame) = frame {
-            let fr_img = image::DynamicImage::from(frame.image);
-            let png_image = match load_dynamic_image(fr_img) {
-                Ok(png_image) => png_image,
-                Err(err) => {
-                    let msg = "Failed to load frame image as png";
-                    eprint!("{msg}: {err}");
-                    return Err(crate::FfbeError::ParseError(msg.into()));
-                }
-            };
-            png_images.push(png_image);
-        }
+        let fr_img = image::DynamicImage::from(frame.image);
+        let png_image = match load_dynamic_image(fr_img) {
+            Ok(png_image) => png_image,
+            Err(err) => {
+                let msg = "Failed to load frame image as png";
+                eprint!("{msg}: {err}");
+                return Err(crate::FfbeError::ParseError(msg.into()));
+            }
+        };
+        png_images.push(png_image);
     }
 
     let mut out = std::io::BufWriter::new(std::fs::File::create(output_path)?);
     let config = apng::create_config(&png_images, None)?;
     let mut encoder = apng::Encoder::new(&mut out, config)?;
 
-    for frame_opt in frames {
-        if let Some(frame) = frame_opt {
-            let png_image = PNGImage {
-                width: frame.image.width(),
-                height: frame.image.height(),
-                data: frame.image.as_raw().clone(),
-                color_type: png::ColorType::Rgba,
-                bit_depth: png::BitDepth::Sixteen,
-            };
-            let apng_frame = apng::Frame {
-                delay_num: Some(frame.delay as u16), // Use frame's specific delay
-                delay_den: Some(60),                 // 60 FPS base
-                ..Default::default()
-            };
-            if let Err(err) = encoder.write_frame(&png_image, apng_frame) {
-                let msg = "Failed to write APNG frame";
-                eprint!("{msg}: {err}");
-                return Err(crate::FfbeError::ParseError(msg.into()));
-            }
+    for frame in frames {
+        let png_image = PNGImage {
+            width: frame.image.width(),
+            height: frame.image.height(),
+            data: frame.image.as_raw().clone(),
+            color_type: png::ColorType::Rgba,
+            bit_depth: png::BitDepth::Sixteen,
+        };
+        let apng_frame = apng::Frame {
+            delay_num: Some(frame.delay as u16), // Use frame's specific delay
+            delay_den: Some(60),                 // 60 FPS base
+            ..Default::default()
+        };
+        if let Err(err) = encoder.write_frame(&png_image, apng_frame) {
+            let msg = "Failed to write APNG frame";
+            eprint!("{msg}: {err}");
+            return Err(crate::FfbeError::ParseError(msg.into()));
         }
     }
 
@@ -208,21 +200,16 @@ pub fn encode_animated_apng(
     }
 }
 
-pub fn encode_animated_gif(
-    frames: Vec<Option<CompositeFrame>>,
-    output_path: &str,
-) -> error::Result<()> {
+pub fn encode_animated_gif(frames: Vec<CompositeFrame>, output_path: &str) -> error::Result<()> {
     let mut gif_frames = Vec::new();
     for frame in frames {
-        if let Some(frame) = frame {
-            let gif_frame = image::Frame::from_parts(
-                frame.image,
-                0,
-                0,
-                image::Delay::from_numer_denom_ms(frame.delay, 60),
-            );
-            gif_frames.push(gif_frame);
-        }
+        let gif_frame = image::Frame::from_parts(
+            frame.image,
+            0,
+            0,
+            image::Delay::from_numer_denom_ms(frame.delay, 60),
+        );
+        gif_frames.push(gif_frame);
     }
     let mut buffer = std::io::BufWriter::new(std::fs::File::create(output_path)?);
     let mut encoder = image::codecs::gif::GifEncoder::new(&mut buffer);
