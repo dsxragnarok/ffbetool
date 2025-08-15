@@ -95,27 +95,10 @@ pub fn process_frames(
         .enumerate()
         .filter_map(|(_frame_num, frame)| {
             let mut target_img = RgbaImage::new(2000, 2000);
+            let frame_offset = (frame.x as i64, frame.y as i64);
 
             for part in &frame.parts {
-                let part_img = process_part(
-                    src_img,
-                    part.img_x,
-                    part.img_y,
-                    part.img_width,
-                    part.img_height,
-                    part.blend_mode as u8,
-                    part.flip_x,
-                    part.flip_y,
-                    part.rotate,
-                    part.opacity as u8,
-                );
-
-                overlay(
-                    &mut target_img,
-                    &part_img,
-                    HALF_CANVAS + frame.x as i64 + part.x_pos as i64,
-                    HALF_CANVAS + frame.y as i64 + part.y_pos as i64,
-                );
+                process_and_overlay_part(&mut target_img, src_img, frame_offset, part);
             }
 
             target_img
@@ -126,56 +109,40 @@ pub fn process_frames(
 
     // Update unit bounds after parallel processing
     for (_, rect) in &results {
-        match (unit.top_left, unit.bottom_right) {
-            (Some(top_left), Some(bottom_right)) => {
-                unit.top_left = Some(crate::imageops::Point::new(
-                    (top_left.x()).min(rect.x as i32),
-                    (top_left.y()).min(rect.y as i32),
-                ));
-
-                unit.bottom_right = Some(crate::imageops::Point::new(
-                    (bottom_right.x()).max(rect.x as i32 + rect.width as i32),
-                    (bottom_right.y()).max(rect.y as i32 + rect.height as i32),
-                ));
-            }
-            _ => {
-                unit.top_left = Some(crate::imageops::Point::new(rect.x as i32, rect.y as i32));
-                unit.bottom_right = Some(crate::imageops::Point::new(
-                    rect.x as i32 + rect.width as i32,
-                    rect.y as i32 + rect.height as i32,
-                ));
-            }
-        }
+        merge_bounding_box(unit, rect);
     }
     results.into_iter().map(|(cf, _)| cf).collect()
 }
 
 /// Processes a single part into a ready-to-overlay image.
-fn process_part(
-    src_img: &DynamicImage,
-    img_x: u32,
-    img_y: u32,
-    img_width: u32,
-    img_height: u32,
-    blend_mode: u8,
-    flip_x: bool,
-    flip_y: bool,
-    rotate: i32,
-    opacity: u8,
-) -> RgbaImage {
-    // Zero-copy crop, then convert to owned image
-    let mut part_img = imageops::crop_imm(src_img, img_x, img_y, img_width, img_height).to_image();
+fn process_part(src_img: &DynamicImage, part: &cgg::PartData) -> RgbaImage {
+    let cgg::PartData {
+        img_x,
+        img_y,
+        img_width,
+        img_height,
+        blend_mode,
+        flip_x,
+        flip_y,
+        rotate,
+        opacity,
+        ..
+    } = part;
 
-    if blend_mode == 1 {
+    // Zero-copy crop, then convert to owned image
+    let mut part_img =
+        imageops::crop_imm(src_img, *img_x, *img_y, *img_width, *img_height).to_image();
+
+    if *blend_mode == 1 {
         part_img.blend();
     }
-    if flip_x {
+    if *flip_x {
         part_img = imageops::flip_horizontal(&part_img);
     }
-    if flip_y {
+    if *flip_y {
         part_img = imageops::flip_vertical(&part_img);
     }
-    if rotate != 0 {
+    if *rotate != 0 {
         part_img = match rotate.rem_euclid(360) {
             90 => imageops::rotate90(&part_img),
             180 => imageops::rotate180(&part_img),
@@ -183,9 +150,47 @@ fn process_part(
             _ => part_img,
         };
     }
-    if opacity < 100 {
-        part_img.opacity(opacity as f32 / 100.0);
+    if *opacity < 100 {
+        part_img.opacity(*opacity as f32 / 100.0);
     }
 
     part_img
+}
+
+fn merge_bounding_box(unit: &mut crate::Unit, rect: &Rect) {
+    match (unit.top_left, unit.bottom_right) {
+        (Some(top_left), Some(bottom_right)) => {
+            unit.top_left = Some(crate::imageops::Point::new(
+                top_left.x().min(rect.x as i32),
+                top_left.y().min(rect.y as i32),
+            ));
+            unit.bottom_right = Some(crate::imageops::Point::new(
+                bottom_right.x().max(rect.x as i32 + rect.width as i32),
+                bottom_right.y().max(rect.y as i32 + rect.height as i32),
+            ));
+        }
+        _ => {
+            unit.top_left = Some(crate::imageops::Point::new(rect.x as i32, rect.y as i32));
+            unit.bottom_right = Some(crate::imageops::Point::new(
+                rect.x as i32 + rect.width as i32,
+                rect.y as i32 + rect.height as i32,
+            ));
+        }
+    }
+}
+
+fn process_and_overlay_part(
+    target_img: &mut RgbaImage,
+    src_img: &DynamicImage,
+    frame_offset: (i64, i64),
+    part: &cgg::PartData,
+) {
+    let part_img = process_part(src_img, part);
+
+    overlay(
+        target_img,
+        &part_img,
+        HALF_CANVAS + frame_offset.0 + part.x_pos as i64,
+        HALF_CANVAS + frame_offset.1 + part.y_pos as i64,
+    );
 }
