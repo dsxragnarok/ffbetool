@@ -9,6 +9,8 @@ use std::io::{self, BufReader};
 use crate::cgg;
 use crate::imageops::{BlendExt, ColorBoundsExt, OpacityExt, Rect};
 
+const CANVAS_SIZE: u32 = 2000;
+
 // Shared constant for centering offsets
 const HALF_CANVAS: i64 = 1000;
 
@@ -94,7 +96,7 @@ pub fn process_frames(
         .par_iter()
         .enumerate()
         .filter_map(|(_frame_num, frame)| {
-            let mut target_img = RgbaImage::new(2000, 2000);
+            let mut target_img = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
             let frame_offset = (frame.x as i64, frame.y as i64);
 
             for part in &frame.parts {
