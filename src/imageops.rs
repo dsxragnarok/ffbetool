@@ -1,4 +1,8 @@
-use crate::{cgs::CompositeFrame, error};
+use crate::{
+    cgs::CompositeFrame,
+    constants::{ALPHA_TRANSPARENT_U8, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT},
+    error,
+};
 use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
 use png;
@@ -52,18 +56,18 @@ impl BlendExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
     fn blend(&mut self) {
         for pixel in self.pixels_mut() {
             let [r, g, b, a] = pixel.0;
-            if a != 0 {
+            if a != ALPHA_TRANSPARENT_U8 {
                 let (r_f, g_f, b_f, a_f) = (
-                    r as f32 / 255.0,
-                    g as f32 / 255.0,
-                    b as f32 / 255.0,
-                    a as f32 / 255.0,
+                    r as f32 / MAX_CHANNEL_F32,
+                    g as f32 / MAX_CHANNEL_F32,
+                    b as f32 / MAX_CHANNEL_F32,
+                    a as f32 / MAX_CHANNEL_F32,
                 );
                 pixel.0 = [
-                    ((r_f * a_f) * 255.0) as u8,
-                    ((g_f * a_f) * 255.0) as u8,
-                    ((b_f * a_f) * 255.0) as u8,
-                    (((r_f + g_f + b_f) / 3.0) * 255.0) as u8,
+                    ((r_f * a_f) * MAX_CHANNEL_F32) as u8,
+                    ((g_f * a_f) * MAX_CHANNEL_F32) as u8,
+                    ((b_f * a_f) * MAX_CHANNEL_F32) as u8,
+                    (((r_f + g_f + b_f) / RGB_CHANNEL_COUNT) * MAX_CHANNEL_F32) as u8,
                 ];
             }
         }
@@ -85,7 +89,7 @@ impl OpacityExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 
         for pixel in self.pixels_mut() {
             let [r, g, b, a] = pixel.0;
-            let new_alpha = ((a as f32) * opacity).round().clamp(0.0, 255.0) as u8;
+            let new_alpha = ((a as f32) * opacity).round().clamp(0.0, MAX_CHANNEL_F32) as u8;
             *pixel = Rgba([r, g, b, new_alpha]);
         }
     }

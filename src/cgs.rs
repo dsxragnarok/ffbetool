@@ -7,12 +7,8 @@ use std::fs::File;
 use std::io::{self, BufReader};
 
 use crate::cgg;
+use crate::constants::{CANVAS_SIZE, HALF_CANVAS};
 use crate::imageops::{BlendExt, ColorBoundsExt, OpacityExt, Rect};
-
-const CANVAS_SIZE: u32 = 2000;
-
-// Shared constant for centering offsets
-const HALF_CANVAS: i64 = 1000;
 
 #[derive(Clone)]
 pub struct Frame {
@@ -192,7 +188,7 @@ fn process_and_overlay_part(
     overlay(
         target_img,
         &part_img,
-        HALF_CANVAS + frame_offset.0 + part.x_pos as i64,
-        HALF_CANVAS + frame_offset.1 + part.y_pos as i64,
+        HALF_CANVAS as i64 + frame_offset.0 + part.x_pos as i64,
+        HALF_CANVAS as i64 + frame_offset.1 + part.y_pos as i64,
     );
 }
