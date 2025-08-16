@@ -61,7 +61,7 @@ pub fn process(text: &str) -> Option<Result<CgsMeta, crate::FfbeError>> {
         .take_while(|s| !s.is_empty())
         .collect::<Vec<&str>>();
 
-    if params.len() < 2 {
+    if params.len() < 4 {
         return None;
     }
 
