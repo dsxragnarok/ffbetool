@@ -89,17 +89,23 @@ fn main() -> ffbetool::Result<()> {
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
     let frames = match cgg::read_file(unit_id, input_path) {
         Ok(reader) => {
-            let frames: Vec<cgg::FrameParts> = reader
-                .lines()
-                .enumerate()
-                .filter_map(|(row, line_result)| match line_result {
-                    Ok(line) => cgg::process(&line, row),
+            let mut frames = Vec::new();
+            for (row, line_result) in reader.lines().enumerate() {
+                match line_result {
+                    Ok(line) => match cgg::process(&line, row) {
+                        Ok(Some(frame_parts)) => frames.push(frame_parts),
+                        Ok(None) => continue, // Skip empty lines
+                        Err(err) => {
+                            eprintln!("Failed to process cgg line {}: {}", row + 1, err);
+                            return Err(err);
+                        }
+                    },
                     Err(err) => {
-                        eprintln!("failed to read line {row}: {err}");
-                        None
+                        eprintln!("Failed to read line {}: {}", row + 1, err);
+                        return Err(err.into());
                     }
-                })
-                .collect();
+                }
+            }
             frames
         }
         Err(err) => {
@@ -125,15 +131,26 @@ fn main() -> ffbetool::Result<()> {
     let mut content = match anim_name {
         Some(anim_name) => match cgs::read_file(unit_id, anim_name, input_path) {
             Ok(reader) => {
-                let cgs_frames_meta = reader.lines().filter_map(|line_result| match line_result {
-                    Ok(line) => cgs::process(&line),
-                    Err(err) => {
-                        eprintln!("failed to read cgs line: {err}");
-                        None
+                let mut cgs_frames_meta = Vec::new();
+                for line_result in reader.lines() {
+                    match line_result {
+                        Ok(line) => match cgs::process(&line) {
+                            Some(Ok(meta)) => cgs_frames_meta.push(meta),
+                            Some(Err(err)) => {
+                                eprintln!("Failed to parse cgs line: {err}");
+                                return Err(err);
+                            }
+                            None => continue, // Skip empty lines
+                        },
+                        Err(err) => {
+                            eprintln!("Failed to read cgs line: {err}");
+                            return Err(err.into());
+                        }
                     }
-                });
+                }
 
                 let frames: Vec<cgs::Frame> = cgs_frames_meta
+                    .into_iter()
                     .map(|meta| {
                         let cgs::CgsMeta(frame_idx, x, y, delay) = meta;
                         let parts = unit.frames[frame_idx].clone();

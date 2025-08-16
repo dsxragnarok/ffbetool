@@ -55,7 +55,7 @@ pub fn read_file(unit_id: u32, anim_name: &str, input_path: &str) -> io::Result<
     Ok(reader)
 }
 
-pub fn process(text: &str) -> Option<CgsMeta> {
+pub fn process(text: &str) -> Option<Result<CgsMeta, crate::FfbeError>> {
     let params = text
         .split(",")
         .take_while(|s| !s.is_empty())
@@ -66,18 +66,49 @@ pub fn process(text: &str) -> Option<CgsMeta> {
     }
 
     match params[..] {
-        [frame_index, x, y, delay] => Some(CgsMeta(
-            frame_index
-                .parse()
-                .expect("failed to parse `frame_index`: should be numerical value"),
-            x.parse()
-                .expect("failed to parse `x` should be numerical value"),
-            y.parse()
-                .expect("failed to parse `y` should be numerical value"),
-            delay
-                .parse()
-                .expect("failed to parse `delay` should be numerical value"),
-        )),
+        [frame_index, x, y, delay] => {
+            let frame_idx = match frame_index.parse() {
+                Ok(val) => val,
+                Err(_) => {
+                    return Some(Err(crate::FfbeError::ParseError(format!(
+                        "Invalid frame_index value: '{}'",
+                        frame_index
+                    ))));
+                }
+            };
+
+            let x_val = match x.parse() {
+                Ok(val) => val,
+                Err(_) => {
+                    return Some(Err(crate::FfbeError::ParseError(format!(
+                        "Invalid x value: '{}'",
+                        x
+                    ))));
+                }
+            };
+
+            let y_val = match y.parse() {
+                Ok(val) => val,
+                Err(_) => {
+                    return Some(Err(crate::FfbeError::ParseError(format!(
+                        "Invalid y value: '{}'",
+                        y
+                    ))));
+                }
+            };
+
+            let delay_val = match delay.parse() {
+                Ok(val) => val,
+                Err(_) => {
+                    return Some(Err(crate::FfbeError::ParseError(format!(
+                        "Invalid delay value: '{}'",
+                        delay
+                    ))));
+                }
+            };
+
+            Some(Ok(CgsMeta(frame_idx, x_val, y_val, delay_val)))
+        }
         _ => None,
     }
 }

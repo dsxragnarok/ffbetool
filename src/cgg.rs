@@ -33,31 +33,32 @@ pub fn read_file(unit_id: u32, input_path: &str) -> io::Result<BufReader<File>> 
     Ok(reader)
 }
 
-pub fn process(text: &str, row: usize) -> Option<FrameParts> {
+use crate::error::Result;
+
+pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
     let mut params = text
         .split(",")
         .take_while(|s| !s.is_empty())
         .collect::<Vec<&str>>();
 
     if params.len() <= 2 {
-        return None;
+        return Ok(None);
     }
 
-    let anchor: i32 = params.remove(0).parse().ok()?;
-    let count: usize = params.remove(0).parse().ok()?;
+    let anchor: i32 = params.remove(0).parse()
+        .map_err(|_| crate::FfbeError::ParseError(format!("Invalid anchor value at line {}: '{}'", row + 1, params[0])))?;
+    let count: usize = params.remove(0).parse()
+        .map_err(|_| crate::FfbeError::ParseError(format!("Invalid count value at line {}: '{}'", row + 1, params[0])))?;
     let chunk_size = params.len() / count;
 
     if chunk_size == 0 {
-        return None;
+        return Ok(None);
     }
 
-    let msg_prefix = "failed to parse";
-    let msg_suffix = "should be a numerical value";
-
-    let parts: Vec<PartData> = params
-        .chunks(chunk_size)
-        .enumerate()
-        .filter_map(|(index, chunk)| match chunk {
+    let mut parts = Vec::new();
+    
+    for (index, chunk) in params.chunks(chunk_size).enumerate() {
+        match chunk {
             [
                 x_pos,
                 y_pos,
@@ -70,50 +71,52 @@ pub fn process(text: &str, row: usize) -> Option<FrameParts> {
                 img_width,
                 img_height,
                 page_id,
-            ] => Some(PartData {
-                anchor,
-                x_pos: x_pos
-                    .parse()
-                    .expect(&format!("{msg_prefix} x_pos: [{x_pos}] {msg_suffix}")),
-                y_pos: y_pos
-                    .parse()
-                    .expect(&format!("{msg_prefix} y_pos: [{y_pos}] {msg_suffix}")),
-                next_type: next_type.parse().expect(&format!(
-                    "{msg_prefix} next_type: [{next_type}] {msg_suffix}"
-                )),
-                blend_mode: blend_mode.parse().expect(&format!(
-                    "{msg_prefix} blend_mode: [{blend_mode}] {msg_suffix}"
-                )),
-                opacity: opacity
-                    .parse()
-                    .expect(&format!("{msg_prefix} opacity: [{opacity}] {msg_suffix}")),
-                rotate: rotate
-                    .parse()
-                    .expect(&format!("{msg_prefix} rotate: [{rotate}] {msg_suffix}")),
-                img_x: img_x
-                    .parse()
-                    .expect(&format!("{msg_prefix} img_x: [{img_x}] {msg_suffix}")),
-                img_y: img_y
-                    .parse()
-                    .expect(&format!("{msg_prefix} img_y: [{img_y}] {msg_suffix}")),
-                img_width: img_width.parse().expect(&format!(
-                    "{msg_prefix} img_width: [{img_width}] {msg_suffix}"
-                )),
-                img_height: img_height.parse().expect(&format!(
-                    "{msg_prefix} img_height: [{img_height}] {msg_suffix}"
-                )),
-                page_id: page_id
-                    .parse()
-                    .expect(&format!("{msg_prefix} page_id: [{page_id}] {msg_suffix}")),
-                index,
-                flip_x: *next_type == "1" || *next_type == "3",
-                flip_y: *next_type == "2" || *next_type == "3",
-                line_index: row,
-            }),
-            _ => None,
-        })
-        .rev()
-        .collect();
+            ] => {
+                let part_data = PartData {
+                    anchor,
+                    x_pos: parse_field(x_pos, "x_pos", row)?,
+                    y_pos: parse_field(y_pos, "y_pos", row)?,
+                    next_type: parse_field(next_type, "next_type", row)?,
+                    blend_mode: parse_field(blend_mode, "blend_mode", row)?,
+                    opacity: parse_field(opacity, "opacity", row)?,
+                    rotate: parse_field(rotate, "rotate", row)?,
+                    img_x: parse_field(img_x, "img_x", row)?,
+                    img_y: parse_field(img_y, "img_y", row)?,
+                    img_width: parse_field(img_width, "img_width", row)?,
+                    img_height: parse_field(img_height, "img_height", row)?,
+                    page_id: parse_field(page_id, "page_id", row)?,
+                    index,
+                    flip_x: *next_type == "1" || *next_type == "3",
+                    flip_y: *next_type == "2" || *next_type == "3",
+                    line_index: row,
+                };
+                parts.push(part_data);
+            }
+            _ => {
+                return Err(crate::FfbeError::ParseError(format!(
+                    "Invalid chunk format at line {}: expected 11 fields, got {}",
+                    row + 1,
+                    chunk.len()
+                )));
+            }
+        }
+    }
 
-    Some(parts)
+    parts.reverse();
+    Ok(Some(parts))
+}
+
+fn parse_field<T: std::str::FromStr>(
+    value: &str,
+    field_name: &str,
+    row: usize,
+) -> Result<T> {
+    value.parse().map_err(|_| {
+        crate::FfbeError::ParseError(format!(
+            "Invalid {} value at line {}: '{}'",
+            field_name,
+            row + 1,
+            value
+        ))
+    })
 }
