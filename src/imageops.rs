@@ -1,6 +1,6 @@
 use crate::{
     cgs::CompositeFrame,
-    constants::{ALPHA_TRANSPARENT_U8, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT},
+    constants::{ALPHA_TRANSPARENT_U8, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT, DEFAULT_FPS},
     error,
 };
 use apng::{self, PNGImage, load_dynamic_image};
@@ -182,7 +182,7 @@ pub fn encode_animated_apng(frames: Vec<CompositeFrame>, output_path: &str) -> e
         };
         let apng_frame = apng::Frame {
             delay_num: Some(frame.delay as u16), // Use frame's specific delay
-            delay_den: Some(60),                 // 60 FPS base
+            delay_den: Some(DEFAULT_FPS),        // Use constant instead of hardcoded 60
             ..Default::default()
         };
         if let Err(err) = encoder.write_frame(&png_image, apng_frame) {
@@ -211,7 +211,7 @@ pub fn encode_animated_gif(frames: Vec<CompositeFrame>, output_path: &str) -> er
             frame.image,
             0,
             0,
-            image::Delay::from_numer_denom_ms(frame.delay, 60),
+            image::Delay::from_numer_denom_ms(frame.delay, DEFAULT_FPS as u32),
         );
         gif_frames.push(gif_frame);
     }

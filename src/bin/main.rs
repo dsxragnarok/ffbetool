@@ -3,6 +3,7 @@ use ffbetool::{
     self, FfbeError,
     cgg::{self},
     cgs::{self, process_frames},
+    constants::FRAME_PADDING,
     validation,
 };
 use image::imageops;
@@ -198,7 +199,7 @@ fn main() -> ffbetool::Result<()> {
                 .top_left
                 .ok_or(FfbeError::MissingValue("top_left".to_string()))?
                 .x() as u32
-            + 10,
+            + FRAME_PADDING,
         height: unit
             .bottom_right
             .ok_or(FfbeError::MissingValue("bottom_right".to_string()))?
@@ -207,7 +208,7 @@ fn main() -> ffbetool::Result<()> {
                 .top_left
                 .ok_or(FfbeError::MissingValue("top_left".to_string()))?
                 .y() as u32
-            + 10,
+            + FRAME_PADDING,
     };
 
     content.1.iter_mut().for_each(|frame| {

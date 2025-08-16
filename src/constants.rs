@@ -14,3 +14,7 @@ pub const ALPHA_OPAQUE_U8: u8 = 1;
 pub const ALPHA_TRANSPARENT_U8: u8 = 0;
 pub const ALPHA_OPAQUE_F32: f32 = 1.0;
 pub const ALPHA_TRANSPARENT_F32: f32 = 0.0;
+
+/// Frame processing constants
+pub const FRAME_PADDING: u32 = 10;
+pub const DEFAULT_FPS: u16 = 60;
