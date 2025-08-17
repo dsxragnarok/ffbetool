@@ -9,7 +9,7 @@ use ffbetool::{
 use image::imageops;
 use std::io::BufRead;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[command(name = "ffbetool")]
 #[command(about = "Tool to assemble Final Fantasy Brave Exvius sprite sheets")]
 struct Args {
@@ -308,4 +308,225 @@ fn save_spritesheet(
     let output_path = format!("{}/{}-{}.png", args.output_dir, args.uid, anim_name);
     spritesheet.save(output_path)?;
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_determine_animation_file_type() {
+        let args_gif = Args {
+            uid: 123,
+            anim: Some("test".to_string()),
+            columns: 0,
+            include_empty: false,
+            verbose: false,
+            save_json: false,
+            save_gif: true,
+            save_apng: false,
+            input_dir: ".".to_string(),
+            output_dir: ".".to_string(),
+        };
+
+        let args_apng = Args {
+            save_gif: false,
+            save_apng: true,
+            ..args_gif.clone()
+        };
+
+        let args_none = Args {
+            save_gif: false,
+            save_apng: false,
+            ..args_gif.clone()
+        };
+
+        assert!(matches!(
+            determine_animation_file_type(&args_gif),
+            AnimFileType::Gif
+        ));
+        assert!(matches!(
+            determine_animation_file_type(&args_apng),
+            AnimFileType::Apng
+        ));
+        assert!(matches!(
+            determine_animation_file_type(&args_none),
+            AnimFileType::None
+        ));
+    }
+
+    #[test]
+    fn test_create_unit() {
+        let frames = vec![vec![]]; // Empty frame parts
+        let unit = create_unit(12345, frames);
+
+        assert_eq!(unit.id, 12345);
+        assert_eq!(unit.frames.len(), 1);
+        assert!(unit.top_left.is_none());
+        assert!(unit.bottom_right.is_none());
+    }
+
+    #[test]
+    fn test_calculate_frame_rect() {
+        let unit = ffbetool::Unit {
+            id: 123,
+            frames: vec![],
+            top_left: Some(ffbetool::imageops::Point::new(10, 20)),
+            bottom_right: Some(ffbetool::imageops::Point::new(110, 220)),
+            width: None,
+            height: None,
+            x_offset: None,
+            y_offset: None,
+        };
+
+        let rect = calculate_frame_rect(&unit).unwrap();
+        assert_eq!(rect.x, 10);
+        assert_eq!(rect.y, 20);
+        assert_eq!(rect.width, 100 + FRAME_PADDING);
+        assert_eq!(rect.height, 200 + FRAME_PADDING);
+    }
+
+    #[test]
+    fn test_calculate_frame_rect_missing_bounds() {
+        let unit = ffbetool::Unit::default();
+        let result = calculate_frame_rect(&unit);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Missing value: top_left")
+        );
+    }
+
+    #[test]
+    fn test_create_single_row_spritesheet() {
+        let frames = vec![
+            cgs::CompositeFrame {
+                frame_idx: 0,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+            cgs::CompositeFrame {
+                frame_idx: 1,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+        ];
+
+        let frame_rect = ffbetool::imageops::Rect {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+        };
+        let sheet = create_single_row_spritesheet(&frames, &frame_rect);
+
+        assert_eq!(sheet.width(), 100); // 2 frames * 50 width
+        assert_eq!(sheet.height(), 50);
+    }
+
+    #[test]
+    fn test_create_multi_row_spritesheet() {
+        let frames = vec![
+            cgs::CompositeFrame {
+                frame_idx: 0,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+            cgs::CompositeFrame {
+                frame_idx: 1,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+            cgs::CompositeFrame {
+                frame_idx: 2,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+        ];
+
+        let frame_rect = ffbetool::imageops::Rect {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+        };
+        let sheet = create_multi_row_spritesheet(&frames, &frame_rect, 2);
+
+        assert_eq!(sheet.width(), 100); // 2 columns * 50 width
+        assert_eq!(sheet.height(), 100); // 2 rows * 50 height (3 frames, 2 columns = 2 rows)
+    }
+
+    #[test]
+    fn test_load_cgg_frames_nonexistent() {
+        let result = load_cgg_frames(99999, "nonexistent_path");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_cgg_frames_existing() {
+        let result = load_cgg_frames(204000103, "test_data");
+        assert!(result.is_ok());
+
+        let frames = result.unwrap();
+        assert!(!frames.is_empty());
+    }
+
+    #[test]
+    fn test_save_spritesheet() {
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().to_str().unwrap();
+
+        let args = Args {
+            uid: 123,
+            anim: Some("test".to_string()),
+            columns: 0,
+            include_empty: false,
+            verbose: false,
+            save_json: false,
+            save_gif: false,
+            save_apng: false,
+            input_dir: ".".to_string(),
+            output_dir: temp_path.to_string(),
+        };
+
+        let spritesheet = image::RgbaImage::new(100, 100);
+        let result = save_spritesheet(&args, "test", spritesheet);
+
+        assert!(result.is_ok());
+
+        let expected_path = format!("{}/123-test.png", temp_path);
+        assert!(std::path::Path::new(&expected_path).exists());
+    }
 }
