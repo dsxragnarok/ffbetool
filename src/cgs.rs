@@ -223,3 +223,172 @@ fn process_and_overlay_part(
         HALF_CANVAS as i64 + frame_offset.1 + part.y_pos as i64,
     );
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cgs_meta_debug() {
+        let meta = CgsMeta(5, 10, 20, 100);
+        let debug_str = format!("{:?}", meta);
+        assert!(debug_str.contains("CgsMeta"));
+        assert!(debug_str.contains("5"));
+        assert!(debug_str.contains("10"));
+        assert!(debug_str.contains("20"));
+        assert!(debug_str.contains("100"));
+    }
+
+    #[test]
+    fn test_process_empty_line() {
+        let result = process("");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_insufficient_params() {
+        let result = process("1,2,3");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_valid_line() {
+        let line = "5,10,20,100";
+        let result = process(line).unwrap().unwrap();
+
+        assert_eq!(result.0, 5); // frame_index
+        assert_eq!(result.1, 10); // x
+        assert_eq!(result.2, 20); // y
+        assert_eq!(result.3, 100); // delay
+    }
+
+    #[test]
+    fn test_process_negative_values() {
+        let line = "0,-10,-20,50";
+        let result = process(line).unwrap().unwrap();
+
+        assert_eq!(result.0, 0);
+        assert_eq!(result.1, -10);
+        assert_eq!(result.2, -20);
+        assert_eq!(result.3, 50);
+    }
+
+    #[test]
+    fn test_process_invalid_frame_index() {
+        let line = "invalid,10,20,100";
+        let result = process(line).unwrap();
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid frame_index value")
+        );
+    }
+
+    #[test]
+    fn test_process_invalid_x() {
+        let line = "5,invalid,20,100";
+        let result = process(line).unwrap();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid x value"));
+    }
+
+    #[test]
+    fn test_process_invalid_y() {
+        let line = "5,10,invalid,100";
+        let result = process(line).unwrap();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid y value"));
+    }
+
+    #[test]
+    fn test_process_invalid_delay() {
+        let line = "5,10,20,invalid";
+        let result = process(line).unwrap();
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid delay value")
+        );
+    }
+
+    #[test]
+    fn test_frame_composite() {
+        let parts = vec![];
+        let frame = Frame {
+            frame_idx: 1,
+            parts,
+            x: 10,
+            y: 20,
+            delay: 100,
+        };
+
+        let image = RgbaImage::new(50, 50);
+        let rect = Rect {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+        };
+
+        let composite = frame.composite(image, rect);
+        assert_eq!(composite.frame_idx, 1);
+        assert_eq!(composite.delay, 100);
+        assert_eq!(composite.rect.width, 50);
+        assert_eq!(composite.rect.height, 50);
+    }
+
+    #[test]
+    fn test_read_file_nonexistent() {
+        let result = read_file(99999, "nonexistent", "nonexistent_path");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_file_existing() {
+        let result = read_file(204000103, "atk", "test_data");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_merge_bounding_box_initial() {
+        let mut unit = crate::Unit::default();
+        let rect = Rect {
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 200,
+        };
+
+        merge_bounding_box(&mut unit, &rect);
+
+        assert_eq!(unit.top_left.unwrap().x(), 10);
+        assert_eq!(unit.top_left.unwrap().y(), 20);
+        assert_eq!(unit.bottom_right.unwrap().x(), 110);
+        assert_eq!(unit.bottom_right.unwrap().y(), 220);
+    }
+
+    #[test]
+    fn test_merge_bounding_box_expand() {
+        let mut unit = crate::Unit {
+            top_left: Some(crate::imageops::Point::new(20, 30)),
+            bottom_right: Some(crate::imageops::Point::new(100, 150)),
+            ..Default::default()
+        };
+
+        let rect = Rect {
+            x: 5,
+            y: 10,
+            width: 200,
+            height: 300,
+        };
+        merge_bounding_box(&mut unit, &rect);
+
+        assert_eq!(unit.top_left.unwrap().x(), 5);
+        assert_eq!(unit.top_left.unwrap().y(), 10);
+        assert_eq!(unit.bottom_right.unwrap().x(), 205);
+        assert_eq!(unit.bottom_right.unwrap().y(), 310);
+    }
+}
