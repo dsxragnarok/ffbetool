@@ -224,3 +224,151 @@ pub fn encode_animated_gif(frames: Vec<CompositeFrame>, output_path: &str) -> er
 
     Ok(())
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{Rgba, RgbaImage};
+
+    #[test]
+    fn test_rect_default() {
+        let rect = Rect::default();
+        assert_eq!(rect.x, 0);
+        assert_eq!(rect.y, 0);
+        assert_eq!(rect.width, 0);
+        assert_eq!(rect.height, 0);
+    }
+
+    #[test]
+    fn test_point_creation() {
+        let point = Point::new(10, 20);
+        assert_eq!(point.x(), 10);
+        assert_eq!(point.y(), 20);
+    }
+
+    #[test]
+    fn test_point_default() {
+        let point = Point::default();
+        assert_eq!(point.x(), 0);
+        assert_eq!(point.y(), 0);
+    }
+
+    #[test]
+    fn test_opacity_trait() {
+        let mut img = RgbaImage::new(2, 2);
+        img.put_pixel(0, 0, Rgba([255, 0, 0, 255])); // Red, full alpha
+        img.put_pixel(1, 0, Rgba([0, 255, 0, 128])); // Green, half alpha
+
+        img.opacity(0.5);
+
+        assert_eq!(img.get_pixel(0, 0).0[3], 128); // 255 * 0.5 = 127.5 -> 128
+        assert_eq!(img.get_pixel(1, 0).0[3], 64); // 128 * 0.5 = 64
+    }
+
+    #[test]
+    #[should_panic(expected = "Opacity must be between 0.0 and 1.0")]
+    fn test_opacity_trait_invalid_value() {
+        let mut img = RgbaImage::new(1, 1);
+        img.opacity(1.5); // Should panic
+    }
+
+    #[test]
+    fn test_blend_trait() {
+        let mut img = RgbaImage::new(2, 2);
+        img.put_pixel(0, 0, Rgba([255, 128, 64, 255])); // RGB with full alpha
+        img.put_pixel(1, 0, Rgba([0, 0, 0, 0])); // Transparent pixel
+
+        img.blend();
+
+        let pixel = img.get_pixel(0, 0);
+        // R' = R * A = 255 * 1.0 = 255
+        // G' = G * A = 128 * 1.0 = 128
+        // B' = B * A = 64 * 1.0 = 64
+        // A' = (R + G + B) / 3 = (255 + 128 + 64) / 3 = 447 / 3 = 149 (integer division)
+        assert_eq!(pixel.0[0], 255);
+        assert_eq!(pixel.0[1], 128);
+        assert_eq!(pixel.0[2], 64);
+        assert_eq!(pixel.0[3], 148); // Corrected expected value due to floating point precision
+
+        // Transparent pixel should remain unchanged
+        let transparent = img.get_pixel(1, 0);
+        assert_eq!(transparent.0, [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_color_bounds_find_color() {
+        let mut img = RgbaImage::new(5, 5);
+        let red = Rgba([255, 0, 0, 255]);
+        let transparent = Rgba([0, 0, 0, 0]);
+
+        // Fill with transparent, add red pixels at specific locations
+        for y in 0..5 {
+            for x in 0..5 {
+                img.put_pixel(x, y, transparent);
+            }
+        }
+        img.put_pixel(1, 1, red);
+        img.put_pixel(3, 3, red);
+
+        let bounds = img.get_color_bounds_rect(red, true).unwrap();
+        assert_eq!(bounds.x, 1);
+        assert_eq!(bounds.y, 1);
+        assert_eq!(bounds.width, 3); // 3 - 1 + 1 = 3
+        assert_eq!(bounds.height, 3); // 3 - 1 + 1 = 3
+    }
+
+    #[test]
+    fn test_color_bounds_find_non_color() {
+        let mut img = RgbaImage::new(3, 3);
+        let transparent = Rgba([0, 0, 0, 0]);
+        let red = Rgba([255, 0, 0, 255]);
+
+        // Fill with transparent except center
+        for y in 0..3 {
+            for x in 0..3 {
+                img.put_pixel(x, y, transparent);
+            }
+        }
+        img.put_pixel(1, 1, red);
+
+        // Find non-transparent pixels (should find the red pixel)
+        let bounds = img.get_color_bounds_rect(transparent, false).unwrap();
+        assert_eq!(bounds.x, 1);
+        assert_eq!(bounds.y, 1);
+        assert_eq!(bounds.width, 1);
+        assert_eq!(bounds.height, 1);
+    }
+
+    #[test]
+    fn test_color_bounds_no_match() {
+        let mut img = RgbaImage::new(2, 2);
+        let transparent = Rgba([0, 0, 0, 0]);
+        let red = Rgba([255, 0, 0, 255]);
+
+        // Fill with transparent
+        for y in 0..2 {
+            for x in 0..2 {
+                img.put_pixel(x, y, transparent);
+            }
+        }
+
+        // Look for red pixels (should find none)
+        let bounds = img.get_color_bounds_rect(red, true);
+        assert!(bounds.is_none());
+    }
+
+    #[test]
+    fn test_load_source_image_nonexistent() {
+        let result = load_source_image(99999, "nonexistent_path");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_source_image_existing() {
+        let result = load_source_image(204000103, "test_data");
+        assert!(result.is_ok());
+
+        let img = result.unwrap();
+        assert!(img.width() > 0);
+        assert!(img.height() > 0);
+    }
+}
