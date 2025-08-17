@@ -45,10 +45,20 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
         return Ok(None);
     }
 
-    let anchor: i32 = params.remove(0).parse()
-        .map_err(|_| crate::FfbeError::ParseError(format!("Invalid anchor value at line {}: '{}'", row + 1, params[0])))?;
-    let count: usize = params.remove(0).parse()
-        .map_err(|_| crate::FfbeError::ParseError(format!("Invalid count value at line {}: '{}'", row + 1, params[0])))?;
+    let anchor: i32 = params.remove(0).parse().map_err(|_| {
+        crate::FfbeError::ParseError(format!(
+            "Invalid anchor value at line {}: '{}'",
+            row + 1,
+            params[0]
+        ))
+    })?;
+    let count: usize = params.remove(0).parse().map_err(|_| {
+        crate::FfbeError::ParseError(format!(
+            "Invalid count value at line {}: '{}'",
+            row + 1,
+            params[0]
+        ))
+    })?;
     let chunk_size = params.len() / count;
 
     if chunk_size == 0 {
@@ -56,7 +66,7 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
     }
 
     let mut parts = Vec::new();
-    
+
     for (index, chunk) in params.chunks(chunk_size).enumerate() {
         match chunk {
             [
@@ -106,11 +116,7 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
     Ok(Some(parts))
 }
 
-fn parse_field<T: std::str::FromStr>(
-    value: &str,
-    field_name: &str,
-    row: usize,
-) -> Result<T> {
+fn parse_field<T: std::str::FromStr>(value: &str, field_name: &str, row: usize) -> Result<T> {
     value.parse().map_err(|_| {
         crate::FfbeError::ParseError(format!(
             "Invalid {} value at line {}: '{}'",

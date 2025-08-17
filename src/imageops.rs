@@ -1,6 +1,6 @@
 use crate::{
     cgs::CompositeFrame,
-    constants::{ALPHA_TRANSPARENT_U8, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT, DEFAULT_FPS},
+    constants::{ALPHA_TRANSPARENT_U8, DEFAULT_FPS, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT},
     error,
 };
 use apng::{self, PNGImage, load_dynamic_image};
