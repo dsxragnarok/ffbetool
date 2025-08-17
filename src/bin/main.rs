@@ -86,8 +86,9 @@ fn main() -> ffbetool::Result<()> {
     // Process animation frames
     let (anim_name, mut composite_frames) = process_animation_frames(&args, &mut unit, &src_img)?;
 
-    // Calculate frame bounds and crop frames
+    // Calculate frame bounds and resize empty frames, then crop frames
     let frame_rect = calculate_frame_rect(&unit)?;
+    resize_empty_frames_to_bounds(&mut composite_frames, &frame_rect);
     crop_frames_to_bounds(&mut composite_frames, &frame_rect);
 
     // Generate outputs
@@ -151,7 +152,7 @@ fn process_animation_frames(
 
     let cgs_frames_meta = load_cgs_metadata(args.uid, anim_name, &args.input_dir)?;
     let frames = create_cgs_frames(cgs_frames_meta, unit);
-    let composite_frames = process_frames(&frames, src_img, unit);
+    let composite_frames = process_frames(&frames, src_img, unit, args.include_empty);
 
     Ok((anim_name.to_string(), composite_frames))
 }
@@ -217,19 +218,41 @@ fn calculate_frame_rect(unit: &ffbetool::Unit) -> ffbetool::Result<ffbetool::ima
     })
 }
 
+fn resize_empty_frames_to_bounds(
+    frames: &mut [cgs::CompositeFrame],
+    frame_rect: &ffbetool::imageops::Rect,
+) {
+    for frame in frames.iter_mut() {
+        // If this is an empty frame (1x1), resize it to full frame dimensions
+        if frame.image.width() == 1 && frame.image.height() == 1 {
+            // Create a new transparent image with full frame dimensions
+            let mut full_frame = image::RgbaImage::new(frame_rect.width, frame_rect.height);
+            // Fill with transparent pixels (this is the default, but being explicit)
+            for pixel in full_frame.pixels_mut() {
+                *pixel = image::Rgba([0, 0, 0, 0]);
+            }
+            frame.image = full_frame;
+            frame.rect = *frame_rect;
+        }
+    }
+}
+
 fn crop_frames_to_bounds(
     frames: &mut [cgs::CompositeFrame],
     frame_rect: &ffbetool::imageops::Rect,
 ) {
     frames.iter_mut().for_each(|frame| {
-        frame.image = imageops::crop(
-            &mut frame.image,
-            frame_rect.x,
-            frame_rect.y,
-            frame_rect.width,
-            frame_rect.height,
-        )
-        .to_image();
+        // Only crop frames that are larger than the target size
+        if frame.image.width() > frame_rect.width || frame.image.height() > frame_rect.height {
+            frame.image = imageops::crop(
+                &mut frame.image,
+                frame_rect.x,
+                frame_rect.y,
+                frame_rect.width,
+                frame_rect.height,
+            )
+            .to_image();
+        }
     });
 }
 
@@ -529,4 +552,49 @@ mod tests {
         let expected_path = format!("{}/123-test.png", temp_path);
         assert!(std::path::Path::new(&expected_path).exists());
     }
+}
+#[test]
+fn test_resize_empty_frames_to_bounds() {
+    let mut frames = vec![
+        cgs::CompositeFrame {
+            frame_idx: 0,
+            image: image::RgbaImage::new(1, 1), // Empty frame (1x1)
+            rect: ffbetool::imageops::Rect {
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+            },
+            delay: 100,
+        },
+        cgs::CompositeFrame {
+            frame_idx: 1,
+            image: image::RgbaImage::new(50, 50), // Normal frame
+            rect: ffbetool::imageops::Rect {
+                x: 0,
+                y: 0,
+                width: 50,
+                height: 50,
+            },
+            delay: 100,
+        },
+    ];
+
+    let frame_rect = ffbetool::imageops::Rect {
+        x: 0,
+        y: 0,
+        width: 50,
+        height: 50,
+    };
+    resize_empty_frames_to_bounds(&mut frames, &frame_rect);
+
+    // Empty frame should now be resized to full dimensions
+    assert_eq!(frames[0].image.width(), 50);
+    assert_eq!(frames[0].image.height(), 50);
+    assert_eq!(frames[0].rect.width, 50);
+    assert_eq!(frames[0].rect.height, 50);
+
+    // Normal frame should remain unchanged
+    assert_eq!(frames[1].image.width(), 50);
+    assert_eq!(frames[1].image.height(), 50);
 }

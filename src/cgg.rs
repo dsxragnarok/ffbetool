@@ -41,7 +41,7 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
         .take_while(|s| !s.is_empty())
         .collect::<Vec<&str>>();
 
-    if params.len() <= 2 {
+    if params.len() < 2 {
         return Ok(None);
     }
 
@@ -59,7 +59,7 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
             params[0]
         ))
     })?;
-    let chunk_size = params.len() / count;
+    let chunk_size = if count == 0 { 1 } else { params.len() / count };
 
     if chunk_size == 0 {
         return Ok(None);

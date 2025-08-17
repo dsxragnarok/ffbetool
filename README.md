@@ -27,7 +27,7 @@ Options:
 
 ## Tasks
 - [x] Implement robust cmdline argument parsing.
-- [ ] Handle empty frames.
+- [x] Handle empty frames.
 - [ ] Save JSON file.
 - [x] User-defined input / output directory.
 - [ ] Process all cgs files for a given directory.

@@ -118,11 +118,12 @@ pub fn process_frames(
     frames: &[Frame],
     src_img: &DynamicImage,
     unit: &mut crate::Unit,
+    include_empty: bool,
 ) -> Vec<CompositeFrame> {
-    let results: Vec<(CompositeFrame, Rect)> = frames
+    let results: Vec<(CompositeFrame, Option<Rect>)> = frames
         .par_iter()
         .enumerate()
-        .filter_map(|(_frame_num, frame)| {
+        .map(|(_frame_num, frame)| {
             let mut target_img = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
             let frame_offset = (frame.x as i64, frame.y as i64);
 
@@ -130,17 +131,43 @@ pub fn process_frames(
                 process_and_overlay_part(&mut target_img, src_img, frame_offset, part);
             }
 
-            target_img
-                .get_color_bounds_rect(Rgba([0, 0, 0, 0]), false)
-                .map(|rect| (frame.clone().composite(target_img, rect), rect))
+            let bounds_rect = target_img.get_color_bounds_rect(Rgba([0, 0, 0, 0]), false);
+
+            match bounds_rect {
+                Some(rect) => (frame.clone().composite(target_img, rect), Some(rect)),
+                None => {
+                    // Create an empty frame - we'll resize it later to match other frames
+                    let empty_rect = Rect {
+                        x: 0,
+                        y: 0,
+                        width: 1,
+                        height: 1,
+                    };
+                    let empty_img = RgbaImage::new(1, 1);
+                    (frame.clone().composite(empty_img, empty_rect), None)
+                }
+            }
         })
         .collect();
 
-    // Update unit bounds after parallel processing
-    for (_, rect) in &results {
-        merge_bounding_box(unit, rect);
+    // Update unit bounds after parallel processing (only for non-empty frames)
+    for (_, rect_opt) in &results {
+        if let Some(rect) = rect_opt {
+            merge_bounding_box(unit, rect);
+        }
     }
-    results.into_iter().map(|(cf, _)| cf).collect()
+
+    // Filter frames based on include_empty flag
+    results
+        .into_iter()
+        .filter_map(|(cf, rect_opt)| {
+            if rect_opt.is_some() || include_empty {
+                Some(cf)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Processes a single part into a ready-to-overlay image.
@@ -391,4 +418,35 @@ mod tests {
         assert_eq!(unit.bottom_right.unwrap().x(), 205);
         assert_eq!(unit.bottom_right.unwrap().y(), 310);
     }
+}
+#[test]
+fn test_process_frames_empty_handling() {
+    use image::DynamicImage;
+
+    // Create a simple test setup
+    let frames = vec![Frame {
+        frame_idx: 0,
+        parts: vec![], // Empty parts - should create empty frame
+        x: 0,
+        y: 0,
+        delay: 100,
+    }];
+
+    // Create a minimal test image
+    let test_img = DynamicImage::new_rgba8(10, 10);
+    let mut unit = crate::Unit::default();
+
+    // Test with include_empty = false (should filter out empty frames)
+    let result_no_empty = process_frames(&frames, &test_img, &mut unit, false);
+    assert_eq!(result_no_empty.len(), 0);
+
+    // Reset unit for second test
+    let mut unit2 = crate::Unit::default();
+
+    // Test with include_empty = true (should include empty frames)
+    let result_with_empty = process_frames(&frames, &test_img, &mut unit2, true);
+    assert_eq!(result_with_empty.len(), 1);
+    // Empty frames start as 1x1 - they get resized later in main.rs
+    assert_eq!(result_with_empty[0].image.width(), 1);
+    assert_eq!(result_with_empty[0].image.height(), 1);
 }
