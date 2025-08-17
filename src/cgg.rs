@@ -126,3 +126,172 @@ fn parse_field<T: std::str::FromStr>(value: &str, field_name: &str, row: usize) 
         ))
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part_data_default() {
+        let part = PartData::default();
+        assert_eq!(part.anchor, 0);
+        assert_eq!(part.x_pos, 0);
+        assert_eq!(part.y_pos, 0);
+        assert_eq!(part.next_type, 0);
+        assert_eq!(part.blend_mode, 0);
+        assert_eq!(part.opacity, 0);
+        assert_eq!(part.rotate, 0);
+        assert_eq!(part.img_x, 0);
+        assert_eq!(part.img_y, 0);
+        assert_eq!(part.img_width, 0);
+        assert_eq!(part.img_height, 0);
+        assert_eq!(part.page_id, 0);
+        assert_eq!(part.index, 0);
+        assert!(!part.flip_x);
+        assert!(!part.flip_y);
+        assert_eq!(part.line_index, 0);
+    }
+
+    #[test]
+    fn test_process_empty_line() {
+        let result = process("", 0).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_insufficient_params() {
+        let result = process("0,1", 0).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_process_valid_single_part() {
+        let line = "0,1,-40,-50,0,1,70,0,704,1232,80,64,0";
+        let result = process(line, 0).unwrap().unwrap();
+
+        assert_eq!(result.len(), 1);
+        let part = &result[0];
+        assert_eq!(part.anchor, 0);
+        assert_eq!(part.x_pos, -40);
+        assert_eq!(part.y_pos, -50);
+        assert_eq!(part.next_type, 0);
+        assert_eq!(part.blend_mode, 1);
+        assert_eq!(part.opacity, 70);
+        assert_eq!(part.rotate, 0);
+        assert_eq!(part.img_x, 704);
+        assert_eq!(part.img_y, 1232);
+        assert_eq!(part.img_width, 80);
+        assert_eq!(part.img_height, 64);
+        assert_eq!(part.page_id, 0);
+        assert_eq!(part.index, 0);
+        assert!(!part.flip_x);
+        assert!(!part.flip_y);
+    }
+
+    #[test]
+    fn test_process_multiple_parts() {
+        let line = "0,2,-40,-50,0,1,70,0,704,1232,80,64,0,0,-60,0,1,70,0,744,1296,40,64,0";
+        let result = process(line, 0).unwrap().unwrap();
+
+        assert_eq!(result.len(), 2);
+
+        // First part (note: parts are reversed)
+        let part1 = &result[0];
+        assert_eq!(part1.x_pos, 0);
+        assert_eq!(part1.y_pos, -60);
+        assert_eq!(part1.img_x, 744);
+        assert_eq!(part1.img_y, 1296);
+
+        // Second part
+        let part2 = &result[1];
+        assert_eq!(part2.x_pos, -40);
+        assert_eq!(part2.y_pos, -50);
+        assert_eq!(part2.img_x, 704);
+        assert_eq!(part2.img_y, 1232);
+    }
+
+    #[test]
+    fn test_flip_flags() {
+        // Test next_type = 1 (flip_x only)
+        let line = "0,1,10,20,1,0,100,0,0,0,50,50,0";
+        let result = process(line, 0).unwrap().unwrap();
+        assert!(result[0].flip_x);
+        assert!(!result[0].flip_y);
+
+        // Test next_type = 2 (flip_y only)
+        let line = "0,1,10,20,2,0,100,0,0,0,50,50,0";
+        let result = process(line, 0).unwrap().unwrap();
+        assert!(!result[0].flip_x);
+        assert!(result[0].flip_y);
+
+        // Test next_type = 3 (both flips)
+        let line = "0,1,10,20,3,0,100,0,0,0,50,50,0";
+        let result = process(line, 0).unwrap().unwrap();
+        assert!(result[0].flip_x);
+        assert!(result[0].flip_y);
+    }
+
+    #[test]
+    fn test_process_invalid_anchor() {
+        let line = "invalid,1,10,20,0,1,70,0,704,1232,80,64,0";
+        let result = process(line, 0);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid anchor value")
+        );
+    }
+
+    #[test]
+    fn test_process_invalid_count() {
+        let line = "0,invalid,10,20,0,1,70,0,704,1232,80,64,0";
+        let result = process(line, 0);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid count value")
+        );
+    }
+
+    #[test]
+    fn test_process_invalid_field() {
+        let line = "0,1,invalid,20,0,1,70,0,704,1232,80,64,0";
+        let result = process(line, 0);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid x_pos value")
+        );
+    }
+
+    #[test]
+    fn test_process_insufficient_chunk_fields() {
+        let line = "0,1,10,20,0,1,70,0,704,1232"; // Missing fields
+        let result = process(line, 0);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid chunk format")
+        );
+    }
+
+    #[test]
+    fn test_read_file_nonexistent() {
+        let result = read_file(99999, "nonexistent_path");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_file_existing() {
+        let result = read_file(204000103, "test_data");
+        assert!(result.is_ok());
+    }
+}
