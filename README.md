@@ -12,7 +12,7 @@ Arguments:
     <UID>  The unit id
 
 Options:
-    -a, --anim <ANIM>          The animation name
+    -a, --anim <ANIM>          The animation name (if not specified, all animations will be processed)
     -c, --columns <COLUMNS>    The number of columns [default: 0]
     -e, --empty                Include empty frames
     -v, --verbose              Verbose logs
@@ -24,13 +24,41 @@ Options:
     -h, --help                 Print help
 ```
 
+## Examples
+
+### Process all animations for a unit
+```bash
+# Auto-discovers and processes all CGS animation files for unit 401012417
+ffbetool 401012417 -i input/ -o output/
+```
+
+### Process a specific animation
+```bash
+# Process only the "atk" animation for unit 401012417
+ffbetool 401012417 -a atk -i input/ -o output/
+```
+
+### Generate animated outputs
+```bash
+# Generate animated GIFs for all animations
+ffbetool 401012417 -i input/ -o output/ --gif
+
+# Generate animated PNGs (APNG) for all animations
+ffbetool 401012417 -i input/ -o output/ --apng
+```
+
+### Include empty frames in animations
+```bash
+# Include empty frames in the output (useful for maintaining timing)
+ffbetool 401012417 -a limit_atk -i input/ -o output/ --empty --gif
+```
 
 ## Tasks
 - [x] Implement robust cmdline argument parsing.
 - [x] Handle empty frames.
-- [ ] Save JSON file.
 - [x] User-defined input / output directory.
-- [ ] Process all cgs files for a given directory.
+- [x] Process all cgs files for a given directory.
+- [ ] Save JSON file.
 - [ ] Reference the `data.json` for mapping between character name and ID.
 
 ## Defects

@@ -4,7 +4,7 @@ use ffbetool::{
     cgg::{self},
     cgs::{self, process_frames},
     constants::FRAME_PADDING,
-    validation,
+    discovery, validation,
 };
 use image::imageops;
 use std::io::BufRead;
@@ -16,7 +16,7 @@ struct Args {
     /// The unit id
     uid: u32,
 
-    /// The animation name
+    /// The animation name (if not specified, all animations will be processed)
     #[arg(short = 'a', long = "anim")]
     anim: Option<String>,
 
@@ -53,6 +53,7 @@ struct Args {
     output_dir: String,
 }
 
+#[derive(Clone)]
 enum AnimFileType {
     Gif,
     Apng,
@@ -83,8 +84,27 @@ fn main() -> ffbetool::Result<()> {
     let mut unit = create_unit(args.uid, frames);
     let src_img = ffbetool::imageops::load_source_image(args.uid, &args.input_dir)?;
 
-    // Process animation frames
-    let (anim_name, mut composite_frames) = process_animation_frames(&args, &mut unit, &src_img)?;
+    // Process animations based on whether a specific animation was requested
+    match args.anim.as_deref() {
+        Some(anim_name) => {
+            process_single_animation(&args, &mut unit, &src_img, anim_name, anim_file_type)?;
+        }
+        None => {
+            process_all_animations(&args, &mut unit, &src_img, anim_file_type)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn process_single_animation(
+    args: &Args,
+    unit: &mut ffbetool::Unit,
+    src_img: &image::DynamicImage,
+    anim_name: &str,
+    anim_file_type: AnimFileType,
+) -> ffbetool::Result<()> {
+    let mut composite_frames = process_animation_frames(args, unit, src_img, anim_name)?;
 
     // Calculate frame bounds and resize empty frames, then crop frames
     let frame_rect = calculate_frame_rect(&unit)?;
@@ -92,9 +112,102 @@ fn main() -> ffbetool::Result<()> {
     crop_frames_to_bounds(&mut composite_frames, &frame_rect);
 
     // Generate outputs
-    save_animated_files(&args, &anim_name, &composite_frames, anim_file_type)?;
+    save_animated_files(&args, anim_name, &composite_frames, anim_file_type)?;
     let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
-    save_spritesheet(&args, &anim_name, spritesheet)?;
+    save_spritesheet(&args, anim_name, spritesheet)?;
+
+    println!("Successfully processed animation: {}", anim_name);
+    Ok(())
+}
+
+fn process_all_animations(
+    args: &Args,
+    unit: &mut ffbetool::Unit,
+    src_img: &image::DynamicImage,
+    anim_file_type: AnimFileType,
+) -> ffbetool::Result<()> {
+    let discovered_animations = discovery::discover_animations(args.uid, &args.input_dir)?;
+
+    println!(
+        "Discovered {} animations for unit {}: {}",
+        discovered_animations.len(),
+        args.uid,
+        discovered_animations
+            .iter()
+            .map(|a| a.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+
+    let mut processed_count = 0;
+    let mut failed_animations = Vec::new();
+
+    for animation in discovered_animations {
+        println!("Processing animation: {}", animation.name);
+
+        // Reset unit bounds for each animation
+        let mut unit = unit.clone();
+
+        match process_animation_frames(args, &mut unit, src_img, &animation.name) {
+            Ok(mut composite_frames) => {
+                // Calculate frame bounds and resize empty frames, then crop frames
+                match calculate_frame_rect(&unit) {
+                    Ok(frame_rect) => {
+                        resize_empty_frames_to_bounds(&mut composite_frames, &frame_rect);
+                        crop_frames_to_bounds(&mut composite_frames, &frame_rect);
+
+                        // Generate outputs
+                        if let Err(err) = save_animated_files(
+                            &args,
+                            &animation.name,
+                            &composite_frames,
+                            anim_file_type.clone(),
+                        ) {
+                            eprintln!(
+                                "Failed to save animated files for {}: {}",
+                                animation.name, err
+                            );
+                            failed_animations.push(animation.name.clone());
+                            continue;
+                        }
+
+                        let spritesheet =
+                            create_spritesheet(&composite_frames, &frame_rect, args.columns);
+                        if let Err(err) = save_spritesheet(&args, &animation.name, spritesheet) {
+                            eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
+                            failed_animations.push(animation.name.clone());
+                            continue;
+                        }
+
+                        processed_count += 1;
+                        println!("✓ Successfully processed: {}", animation.name);
+                    }
+                    Err(err) => {
+                        eprintln!(
+                            "Failed to calculate frame bounds for {}: {}",
+                            animation.name, err
+                        );
+                        failed_animations.push(animation.name);
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("Failed to process animation {}: {}", animation.name, err);
+                failed_animations.push(animation.name);
+            }
+        }
+    }
+
+    println!("\nProcessing complete:");
+    println!("✓ Successfully processed: {} animations", processed_count);
+
+    if !failed_animations.is_empty() {
+        println!(
+            "✗ Failed to process: {} animations ({})",
+            failed_animations.len(),
+            failed_animations.join(", ")
+        );
+    }
 
     Ok(())
 }
@@ -143,18 +256,13 @@ fn process_animation_frames(
     args: &Args,
     unit: &mut ffbetool::Unit,
     src_img: &image::DynamicImage,
-) -> ffbetool::Result<(String, Vec<cgs::CompositeFrame>)> {
-    let anim_name = args.anim.as_deref().ok_or_else(|| {
-        FfbeError::NotImplemented(
-            "`anim_name` not specified -- full directory processing not yet supported".to_string(),
-        )
-    })?;
-
+    anim_name: &str,
+) -> ffbetool::Result<Vec<cgs::CompositeFrame>> {
     let cgs_frames_meta = load_cgs_metadata(args.uid, anim_name, &args.input_dir)?;
     let frames = create_cgs_frames(cgs_frames_meta, unit);
     let composite_frames = process_frames(&frames, src_img, unit, args.include_empty);
 
-    Ok((anim_name.to_string(), composite_frames))
+    Ok(composite_frames)
 }
 
 fn load_cgs_metadata(
@@ -332,6 +440,7 @@ fn save_spritesheet(
     spritesheet.save(output_path)?;
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -552,49 +661,62 @@ mod tests {
         let expected_path = format!("{}/123-test.png", temp_path);
         assert!(std::path::Path::new(&expected_path).exists());
     }
-}
-#[test]
-fn test_resize_empty_frames_to_bounds() {
-    let mut frames = vec![
-        cgs::CompositeFrame {
-            frame_idx: 0,
-            image: image::RgbaImage::new(1, 1), // Empty frame (1x1)
-            rect: ffbetool::imageops::Rect {
-                x: 0,
-                y: 0,
-                width: 1,
-                height: 1,
+
+    #[test]
+    fn test_resize_empty_frames_to_bounds() {
+        let mut frames = vec![
+            cgs::CompositeFrame {
+                frame_idx: 0,
+                image: image::RgbaImage::new(1, 1), // Empty frame (1x1)
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 1,
+                    height: 1,
+                },
+                delay: 100,
             },
-            delay: 100,
-        },
-        cgs::CompositeFrame {
-            frame_idx: 1,
-            image: image::RgbaImage::new(50, 50), // Normal frame
-            rect: ffbetool::imageops::Rect {
-                x: 0,
-                y: 0,
-                width: 50,
-                height: 50,
+            cgs::CompositeFrame {
+                frame_idx: 1,
+                image: image::RgbaImage::new(50, 50), // Normal frame
+                rect: ffbetool::imageops::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
             },
-            delay: 100,
-        },
-    ];
+        ];
 
-    let frame_rect = ffbetool::imageops::Rect {
-        x: 0,
-        y: 0,
-        width: 50,
-        height: 50,
-    };
-    resize_empty_frames_to_bounds(&mut frames, &frame_rect);
+        let frame_rect = ffbetool::imageops::Rect {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+        };
+        resize_empty_frames_to_bounds(&mut frames, &frame_rect);
 
-    // Empty frame should now be resized to full dimensions
-    assert_eq!(frames[0].image.width(), 50);
-    assert_eq!(frames[0].image.height(), 50);
-    assert_eq!(frames[0].rect.width, 50);
-    assert_eq!(frames[0].rect.height, 50);
+        // Empty frame should now be resized to full dimensions
+        assert_eq!(frames[0].image.width(), 50);
+        assert_eq!(frames[0].image.height(), 50);
+        assert_eq!(frames[0].rect.width, 50);
+        assert_eq!(frames[0].rect.height, 50);
 
-    // Normal frame should remain unchanged
-    assert_eq!(frames[1].image.width(), 50);
-    assert_eq!(frames[1].image.height(), 50);
+        // Normal frame should remain unchanged
+        assert_eq!(frames[1].image.width(), 50);
+        assert_eq!(frames[1].image.height(), 50);
+    }
+
+    #[test]
+    fn test_anim_file_type_clone() {
+        let gif_type = AnimFileType::Gif;
+        let cloned_gif = gif_type.clone();
+
+        // Test that cloning works (this will compile if Clone is properly derived)
+        match (gif_type, cloned_gif) {
+            (AnimFileType::Gif, AnimFileType::Gif) => {}
+            _ => panic!("Clone didn't work correctly"),
+        }
+    }
 }

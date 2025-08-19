@@ -1,6 +1,7 @@
 pub mod cgg;
 pub mod cgs;
 pub mod constants;
+pub mod discovery;
 pub mod error;
 pub mod imageops;
 pub mod validation;

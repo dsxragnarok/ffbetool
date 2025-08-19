@@ -28,7 +28,7 @@ pub fn validate_input_args(uid: u32, input_dir: &str, anim_name: Option<&str>) -
         return Err(FfbeError::FileNotFound(cgg_file));
     }
 
-    // Validate animation file if specified
+    // Validate animation file if specified (for single animation mode)
     if let Some(anim) = anim_name {
         let cgs_file = format!("{}/unit_{}_cgs_{}.csv", input_dir, anim, uid);
         if !Path::new(&cgs_file).exists() {
