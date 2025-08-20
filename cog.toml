@@ -1,0 +1,50 @@
+from_latest_tag = false
+ignore_merge_commits = true
+ignore_fixup_commits = true
+disable_changelog = false
+disable_bump_commit = false
+generate_mono_repository_global_tag = false
+generate_mono_repository_package_tags = false
+branch_whitelist = [
+  "main",
+  "release/**"
+]
+skip_untracked = false
+pre_bump_hooks = [
+  "cargo build --release",          # verify the project builds
+  "cargo set-version {{version}}",  # bump version in Cargo.toml
+  "cargo check --release",
+  "git add :/Cargo.lock",           # stage version bump in Cargo.lock
+]
+post_bump_hooks = [
+  "git push",
+  "git push {{version}}",
+]
+pre_package_bump_hooks = []
+post_package_bump_hooks = []
+
+[git_hooks]
+
+[commit_types]
+test = { changelog_title = "", omit_from_changelog = true }
+chore = { changelog_title = "", omit_from_changelog = true }
+style = { changelog_title = "", omit_from_changelog = true }
+ci = { changelog_title = "", omit_from_changelog = true }
+perf = { changelog_title = "", omit_from_changelog = true }
+build = { changelog_title = "", omit_from_changelog = true }
+docs = { changelog_title = "", omit_from_changelog = true }
+
+
+[changelog]
+path = "CHANGELOG.md"
+template = "remote"
+remote = "github.com"
+repository = "ffbetool"
+owner = "dsxragnarok"
+authors = [
+  { signature = "Kevin Phung", username = "dsxragnarok" },
+]
+
+[bump_profiles]
+
+[packages]
