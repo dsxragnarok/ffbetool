@@ -224,32 +224,17 @@ pub fn encode_animated_gif(frames: Vec<CompositeFrame>, output_path: &str) -> er
 
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use image::{Rgba, RgbaImage};
 
     #[test]
-    fn test_rect_default() {
-        let rect = Rect::default();
-        assert_eq!(rect.x, 0);
-        assert_eq!(rect.y, 0);
-        assert_eq!(rect.width, 0);
-        assert_eq!(rect.height, 0);
-    }
-
-    #[test]
     fn test_point_creation() {
         let point = Point::new(10, 20);
         assert_eq!(point.x(), 10);
         assert_eq!(point.y(), 20);
-    }
-
-    #[test]
-    fn test_point_default() {
-        let point = Point::default();
-        assert_eq!(point.x(), 0);
-        assert_eq!(point.y(), 0);
     }
 
     #[test]

@@ -50,6 +50,7 @@ impl From<APNGError> for FfbeError {
 }
 
 pub type Result<T> = std::result::Result<T, FfbeError>;
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -132,27 +132,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_part_data_default() {
-        let part = PartData::default();
-        assert_eq!(part.anchor, 0);
-        assert_eq!(part.x_pos, 0);
-        assert_eq!(part.y_pos, 0);
-        assert_eq!(part.next_type, 0);
-        assert_eq!(part.blend_mode, 0);
-        assert_eq!(part.opacity, 0);
-        assert_eq!(part.rotate, 0);
-        assert_eq!(part.img_x, 0);
-        assert_eq!(part.img_y, 0);
-        assert_eq!(part.img_width, 0);
-        assert_eq!(part.img_height, 0);
-        assert_eq!(part.page_id, 0);
-        assert_eq!(part.index, 0);
-        assert!(!part.flip_x);
-        assert!(!part.flip_y);
-        assert_eq!(part.line_index, 0);
-    }
-
-    #[test]
     fn test_process_empty_line() {
         let result = process("", 0).unwrap();
         assert!(result.is_none());

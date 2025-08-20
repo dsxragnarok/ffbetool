@@ -55,6 +55,7 @@ pub fn validate_output_dir(output_dir: &str) -> Result<()> {
 
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

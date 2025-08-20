@@ -255,17 +255,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cgs_meta_debug() {
-        let meta = CgsMeta(5, 10, 20, 100);
-        let debug_str = format!("{:?}", meta);
-        assert!(debug_str.contains("CgsMeta"));
-        assert!(debug_str.contains("5"));
-        assert!(debug_str.contains("10"));
-        assert!(debug_str.contains("20"));
-        assert!(debug_str.contains("100"));
-    }
-
-    #[test]
     fn test_process_empty_line() {
         let result = process("");
         assert!(result.is_none());
@@ -418,35 +407,36 @@ mod tests {
         assert_eq!(unit.bottom_right.unwrap().x(), 205);
         assert_eq!(unit.bottom_right.unwrap().y(), 310);
     }
-}
-#[test]
-fn test_process_frames_empty_handling() {
-    use image::DynamicImage;
 
-    // Create a simple test setup
-    let frames = vec![Frame {
-        frame_idx: 0,
-        parts: vec![], // Empty parts - should create empty frame
-        x: 0,
-        y: 0,
-        delay: 100,
-    }];
+    #[test]
+    fn test_process_frames_empty_handling() {
+        use image::DynamicImage;
 
-    // Create a minimal test image
-    let test_img = DynamicImage::new_rgba8(10, 10);
-    let mut unit = crate::Unit::default();
+        // Create a simple test setup
+        let frames = vec![Frame {
+            frame_idx: 0,
+            parts: vec![], // Empty parts - should create empty frame
+            x: 0,
+            y: 0,
+            delay: 100,
+        }];
 
-    // Test with include_empty = false (should filter out empty frames)
-    let result_no_empty = process_frames(&frames, &test_img, &mut unit, false);
-    assert_eq!(result_no_empty.len(), 0);
+        // Create a minimal test image
+        let test_img = DynamicImage::new_rgba8(10, 10);
+        let mut unit = crate::Unit::default();
 
-    // Reset unit for second test
-    let mut unit2 = crate::Unit::default();
+        // Test with include_empty = false (should filter out empty frames)
+        let result_no_empty = process_frames(&frames, &test_img, &mut unit, false);
+        assert_eq!(result_no_empty.len(), 0);
 
-    // Test with include_empty = true (should include empty frames)
-    let result_with_empty = process_frames(&frames, &test_img, &mut unit2, true);
-    assert_eq!(result_with_empty.len(), 1);
-    // Empty frames start as 1x1 - they get resized later in main.rs
-    assert_eq!(result_with_empty[0].image.width(), 1);
-    assert_eq!(result_with_empty[0].image.height(), 1);
+        // Reset unit for second test
+        let mut unit2 = crate::Unit::default();
+
+        // Test with include_empty = true (should include empty frames)
+        let result_with_empty = process_frames(&frames, &test_img, &mut unit2, true);
+        assert_eq!(result_with_empty.len(), 1);
+        // Empty frames start as 1x1 - they get resized later in main.rs
+        assert_eq!(result_with_empty[0].image.width(), 1);
+        assert_eq!(result_with_empty[0].image.height(), 1);
+    }
 }

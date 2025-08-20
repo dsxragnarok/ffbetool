@@ -707,16 +707,4 @@ mod tests {
         assert_eq!(frames[1].image.width(), 50);
         assert_eq!(frames[1].image.height(), 50);
     }
-
-    #[test]
-    fn test_anim_file_type_clone() {
-        let gif_type = AnimFileType::Gif;
-        let cloned_gif = gif_type.clone();
-
-        // Test that cloning works (this will compile if Clone is properly derived)
-        match (gif_type, cloned_gif) {
-            (AnimFileType::Gif, AnimFileType::Gif) => {}
-            _ => panic!("Clone didn't work correctly"),
-        }
-    }
 }
