@@ -49,6 +49,12 @@ impl From<APNGError> for FfbeError {
     }
 }
 
+impl From<serde_json::Error> for FfbeError {
+    fn from(err: serde_json::Error) -> Self {
+        FfbeError::ParseError(err.to_string())
+    }
+}
+
 pub type Result<T> = std::result::Result<T, FfbeError>;
 
 #[cfg(test)]

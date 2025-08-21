@@ -4,7 +4,7 @@ use ffbetool::{
     cgg::{self},
     cgs::{self, process_frames},
     constants::FRAME_PADDING,
-    discovery, validation,
+    discovery, metadata, validation,
 };
 use image::imageops;
 use std::io::BufRead;
@@ -114,7 +114,17 @@ fn process_single_animation(
     // Generate outputs
     save_animated_files(&args, anim_name, &composite_frames, anim_file_type)?;
     let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
-    save_spritesheet(&args, anim_name, spritesheet)?;
+    save_spritesheet(&args, anim_name, spritesheet.clone())?;
+
+    if args.save_json {
+        save_json_output(
+            &args,
+            anim_name,
+            &composite_frames,
+            &frame_rect,
+            &spritesheet,
+        )?;
+    }
 
     println!("Successfully processed animation: {}", anim_name);
     Ok(())
@@ -173,10 +183,24 @@ fn process_all_animations(
 
                         let spritesheet =
                             create_spritesheet(&composite_frames, &frame_rect, args.columns);
-                        if let Err(err) = save_spritesheet(&args, &animation.name, spritesheet) {
+                        if let Err(err) =
+                            save_spritesheet(&args, &animation.name, spritesheet.clone())
+                        {
                             eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
                             failed_animations.push(animation.name.clone());
                             continue;
+                        }
+
+                        if args.save_json {
+                            if let Err(err) = save_json_output(
+                                &args,
+                                &animation.name,
+                                &composite_frames,
+                                &frame_rect,
+                                &spritesheet,
+                            ) {
+                                eprintln!("Failed to save JSON for {}: {}", animation.name, err);
+                            }
                         }
 
                         processed_count += 1;
@@ -429,6 +453,27 @@ fn create_multi_row_spritesheet(
     }
 
     sheet
+}
+
+fn save_json_output(
+    args: &Args,
+    anim_name: &str,
+    frames: &[cgs::CompositeFrame],
+    frame_rect: &ffbetool::imageops::Rect,
+    spritesheet: &image::RgbaImage,
+) -> ffbetool::Result<()> {
+    let animation_json = metadata::AnimationJson::from_frames(
+        args.uid,
+        anim_name.to_string(),
+        frames,
+        frame_rect,
+        spritesheet.width(),
+        spritesheet.height(),
+    );
+
+    let output_path = format!("{}/{}-{}.json", args.output_dir, args.uid, anim_name);
+    metadata::save_animation_json(&animation_json, &output_path)?;
+    Ok(())
 }
 
 fn save_spritesheet(
@@ -706,5 +751,92 @@ mod tests {
         // Normal frame should remain unchanged
         assert_eq!(frames[1].image.width(), 50);
         assert_eq!(frames[1].image.height(), 50);
+    }
+
+    #[test]
+    fn test_save_json_output() {
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().to_str().unwrap();
+
+        let args = Args {
+            uid: 123,
+            anim: Some("test".to_string()),
+            columns: 0,
+            include_empty: false,
+            verbose: false,
+            save_json: true,
+            save_gif: false,
+            save_apng: false,
+            input_dir: ".".to_string(),
+            output_dir: temp_path.to_string(),
+        };
+
+        let frames = vec![
+            cgs::CompositeFrame {
+                frame_idx: 0,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 10,
+                    y: 20,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 100,
+            },
+            cgs::CompositeFrame {
+                frame_idx: 1,
+                image: image::RgbaImage::new(50, 50),
+                rect: ffbetool::imageops::Rect {
+                    x: 10,
+                    y: 20,
+                    width: 50,
+                    height: 50,
+                },
+                delay: 150,
+            },
+        ];
+
+        let frame_rect = ffbetool::imageops::Rect {
+            x: 5,
+            y: 10,
+            width: 60,
+            height: 70,
+        };
+        let spritesheet = image::RgbaImage::new(120, 70);
+
+        let result = save_json_output(&args, "test_anim", &frames, &frame_rect, &spritesheet);
+        assert!(result.is_ok());
+
+        let expected_path = format!("{}/123-test_anim.json", temp_path);
+        assert!(std::path::Path::new(&expected_path).exists());
+
+        // Parse and validate JSON structure
+        let json_content = std::fs::read_to_string(&expected_path).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_content).unwrap();
+
+        // Validate all required fields exist and have correct values
+        assert_eq!(parsed["unitId"], 123);
+        assert_eq!(parsed["animName"], "test_anim");
+        assert_eq!(parsed["frameDelays"], serde_json::json!([100, 150]));
+        assert_eq!(parsed["frameRect"]["x"], 5);
+        assert_eq!(parsed["frameRect"]["y"], 10);
+        assert_eq!(parsed["frameRect"]["width"], 60);
+        assert_eq!(parsed["frameRect"]["height"], 70);
+        assert_eq!(parsed["imageWidth"], 120);
+        assert_eq!(parsed["imageHeight"], 70);
+
+        // Ensure no extra fields
+        let expected_keys = [
+            "unitId",
+            "animName",
+            "frameDelays",
+            "frameRect",
+            "imageWidth",
+            "imageHeight",
+        ];
+        assert_eq!(parsed.as_object().unwrap().len(), expected_keys.len());
+        for key in expected_keys {
+            assert!(parsed.as_object().unwrap().contains_key(key));
+        }
     }
 }

@@ -4,6 +4,7 @@ pub mod constants;
 pub mod discovery;
 pub mod error;
 pub mod imageops;
+pub mod metadata;
 pub mod validation;
 
 pub use error::{FfbeError, Result};

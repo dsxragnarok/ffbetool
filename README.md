@@ -47,6 +47,18 @@ ffbetool 401012417 -i input/ -o output/ --gif
 ffbetool 401012417 -i input/ -o output/ --apng
 ```
 
+### Generate JSON metadata
+```bash
+# Generate JSON metadata files for all animations
+ffbetool 401012417 -i input/ -o output/ --json
+
+# Generate JSON metadata for specific animation
+ffbetool 401012417 -a limit_atk -i input/ -o output/ --json
+
+# Combine JSON with animated outputs
+ffbetool 401012417 -i input/ -o output/ --json --gif
+```
+
 ### Include empty frames in animations
 ```bash
 # Include empty frames in the output (useful for maintaining timing)
@@ -58,7 +70,7 @@ ffbetool 401012417 -a limit_atk -i input/ -o output/ --empty --gif
 - [x] Handle empty frames.
 - [x] User-defined input / output directory.
 - [x] Process all cgs files for a given directory.
-- [ ] Save JSON file.
+- [x] Save JSON file.
 - [ ] Reference the `data.json` for mapping between character name and ID.
 
 ## Defects
