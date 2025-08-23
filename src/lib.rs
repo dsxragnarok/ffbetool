@@ -1,5 +1,6 @@
 pub mod cgg;
 pub mod cgs;
+pub mod character_db;
 pub mod constants;
 pub mod discovery;
 pub mod error;

@@ -4,6 +4,7 @@ use apng::errors::APNGError;
 
 #[derive(Debug)]
 pub enum FfbeError {
+    CharacterNotFound(String),
     IoError(std::io::Error),
     ImageError(image::ImageError),
     ApngError(APNGError),
@@ -17,6 +18,7 @@ pub enum FfbeError {
 impl fmt::Display for FfbeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            FfbeError::CharacterNotFound(name) => write!(f, "Character not found in DB: {}", name),
             FfbeError::IoError(err) => write!(f, "IO error: {}", err),
             FfbeError::ImageError(err) => write!(f, "Image error: {}", err),
             FfbeError::ApngError(err) => write!(f, "APNG error: {}", err),
