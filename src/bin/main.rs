@@ -3,18 +3,38 @@ use ffbetool::{
     self, FfbeError,
     cgg::{self},
     cgs::{self, process_frames},
+    character_db,
     constants::FRAME_PADDING,
     discovery, metadata, validation,
 };
 use image::imageops;
 use std::io::BufRead;
+use std::str::FromStr;
+
+#[derive(Clone)]
+pub enum UnitIdentifier {
+    Id(u32),
+    Name(String),
+}
+
+impl FromStr for UnitIdentifier {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Try to parse as u32 first, if it fails treat as a name
+        match s.parse::<u32>() {
+            Ok(id) => Ok(UnitIdentifier::Id(id)),
+            Err(_) => Ok(UnitIdentifier::Name(s.to_string())),
+        }
+    }
+}
 
 #[derive(Parser, Clone)]
 #[command(name = "ffbetool")]
 #[command(about = "Tool to assemble Final Fantasy Brave Exvius sprite sheets")]
 struct Args {
     /// The unit id
-    uid: u32,
+    uid: UnitIdentifier,
 
     /// The animation name (if not specified, all animations will be processed)
     #[arg(short = 'a', long = "anim")]
@@ -72,25 +92,37 @@ impl From<&str> for AnimFileType {
 
 fn main() -> ffbetool::Result<()> {
     let args = Args::parse();
+    let char_db = match character_db::Db::from_file("character_data.json") {
+        Ok(db) => db,
+        Err(err) => return Err(err),
+    };
+
+    let uid: u32 = match &args.uid {
+        UnitIdentifier::Id(id) => *id,
+        UnitIdentifier::Name(name) => match char_db.find_by_name(&name) {
+            Ok(uid) => uid,
+            Err(err) => return Err(err),
+        },
+    };
 
     // Validate inputs early
-    validation::validate_input_args(args.uid, &args.input_dir, args.anim.as_deref())?;
+    validation::validate_input_args(uid, &args.input_dir, args.anim.as_deref())?;
     validation::validate_output_dir(&args.output_dir)?;
 
     let anim_file_type = determine_animation_file_type(&args);
 
     // Load and process frame data
-    let frames = load_cgg_frames(args.uid, &args.input_dir)?;
-    let mut unit = create_unit(args.uid, frames);
-    let src_img = ffbetool::imageops::load_source_image(args.uid, &args.input_dir)?;
+    let frames = load_cgg_frames(uid, &args.input_dir)?;
+    let mut unit = create_unit(uid, frames);
+    let src_img = ffbetool::imageops::load_source_image(uid, &args.input_dir)?;
 
     // Process animations based on whether a specific animation was requested
     match args.anim.as_deref() {
         Some(anim_name) => {
-            process_single_animation(&args, &mut unit, &src_img, anim_name, anim_file_type)?;
+            process_single_animation(&args, uid, &mut unit, &src_img, anim_name, anim_file_type)?;
         }
         None => {
-            process_all_animations(&args, &mut unit, &src_img, anim_file_type)?;
+            process_all_animations(&args, uid, &mut unit, &src_img, anim_file_type)?;
         }
     }
 
@@ -99,12 +131,13 @@ fn main() -> ffbetool::Result<()> {
 
 fn process_single_animation(
     args: &Args,
+    uid: u32,
     unit: &mut ffbetool::Unit,
     src_img: &image::DynamicImage,
     anim_name: &str,
     anim_file_type: AnimFileType,
 ) -> ffbetool::Result<()> {
-    let mut composite_frames = process_animation_frames(args, unit, src_img, anim_name)?;
+    let mut composite_frames = process_animation_frames(args, uid, unit, src_img, anim_name)?;
 
     // Calculate frame bounds and resize empty frames, then crop frames
     let frame_rect = calculate_frame_rect(&unit)?;
@@ -112,13 +145,14 @@ fn process_single_animation(
     crop_frames_to_bounds(&mut composite_frames, &frame_rect);
 
     // Generate outputs
-    save_animated_files(&args, anim_name, &composite_frames, anim_file_type)?;
+    save_animated_files(&args, uid, anim_name, &composite_frames, anim_file_type)?;
     let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
-    save_spritesheet(&args, anim_name, spritesheet.clone())?;
+    save_spritesheet(&args, uid, anim_name, spritesheet.clone())?;
 
     if args.save_json {
         save_json_output(
             &args,
+            uid,
             anim_name,
             &composite_frames,
             &frame_rect,
@@ -132,16 +166,17 @@ fn process_single_animation(
 
 fn process_all_animations(
     args: &Args,
+    uid: u32,
     unit: &mut ffbetool::Unit,
     src_img: &image::DynamicImage,
     anim_file_type: AnimFileType,
 ) -> ffbetool::Result<()> {
-    let discovered_animations = discovery::discover_animations(args.uid, &args.input_dir)?;
+    let discovered_animations = discovery::discover_animations(uid, &args.input_dir)?;
 
     println!(
         "Discovered {} animations for unit {}: {}",
         discovered_animations.len(),
-        args.uid,
+        uid,
         discovered_animations
             .iter()
             .map(|a| a.name.as_str())
@@ -158,7 +193,7 @@ fn process_all_animations(
         // Reset unit bounds for each animation
         let mut unit = unit.clone();
 
-        match process_animation_frames(args, &mut unit, src_img, &animation.name) {
+        match process_animation_frames(args, uid, &mut unit, src_img, &animation.name) {
             Ok(mut composite_frames) => {
                 // Calculate frame bounds and resize empty frames, then crop frames
                 match calculate_frame_rect(&unit) {
@@ -169,6 +204,7 @@ fn process_all_animations(
                         // Generate outputs
                         if let Err(err) = save_animated_files(
                             &args,
+                            uid,
                             &animation.name,
                             &composite_frames,
                             anim_file_type.clone(),
@@ -184,7 +220,7 @@ fn process_all_animations(
                         let spritesheet =
                             create_spritesheet(&composite_frames, &frame_rect, args.columns);
                         if let Err(err) =
-                            save_spritesheet(&args, &animation.name, spritesheet.clone())
+                            save_spritesheet(&args, uid, &animation.name, spritesheet.clone())
                         {
                             eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
                             failed_animations.push(animation.name.clone());
@@ -194,6 +230,7 @@ fn process_all_animations(
                         if args.save_json {
                             if let Err(err) = save_json_output(
                                 &args,
+                                uid,
                                 &animation.name,
                                 &composite_frames,
                                 &frame_rect,
@@ -278,11 +315,12 @@ fn create_unit(unit_id: u32, frames: Vec<cgg::FrameParts>) -> ffbetool::Unit {
 
 fn process_animation_frames(
     args: &Args,
+    uid: u32,
     unit: &mut ffbetool::Unit,
     src_img: &image::DynamicImage,
     anim_name: &str,
 ) -> ffbetool::Result<Vec<cgs::CompositeFrame>> {
-    let cgs_frames_meta = load_cgs_metadata(args.uid, anim_name, &args.input_dir)?;
+    let cgs_frames_meta = load_cgs_metadata(uid, anim_name, &args.input_dir)?;
     let frames = create_cgs_frames(cgs_frames_meta, unit);
     let composite_frames = process_frames(&frames, src_img, unit, args.include_empty);
 
@@ -390,17 +428,18 @@ fn crop_frames_to_bounds(
 
 fn save_animated_files(
     args: &Args,
+    uid: u32,
     anim_name: &str,
     frames: &[cgs::CompositeFrame],
     anim_file_type: AnimFileType,
 ) -> ffbetool::Result<()> {
     match anim_file_type {
         AnimFileType::Apng => {
-            let output_path = format!("{}/{}-{}-anim.png", args.output_dir, args.uid, anim_name);
+            let output_path = format!("{}/{}-{}-anim.png", args.output_dir, uid, anim_name);
             ffbetool::imageops::encode_animated_apng(frames.to_vec(), &output_path)?;
         }
         AnimFileType::Gif => {
-            let output_path = format!("{}/{}-{}-anim.gif", args.output_dir, args.uid, anim_name);
+            let output_path = format!("{}/{}-{}-anim.gif", args.output_dir, uid, anim_name);
             ffbetool::imageops::encode_animated_gif(frames.to_vec(), &output_path)?;
         }
         AnimFileType::None => {}
@@ -457,13 +496,14 @@ fn create_multi_row_spritesheet(
 
 fn save_json_output(
     args: &Args,
+    uid: u32,
     anim_name: &str,
     frames: &[cgs::CompositeFrame],
     frame_rect: &ffbetool::imageops::Rect,
     spritesheet: &image::RgbaImage,
 ) -> ffbetool::Result<()> {
     let animation_json = metadata::AnimationJson::from_frames(
-        args.uid,
+        uid,
         anim_name.to_string(),
         frames,
         frame_rect,
@@ -471,17 +511,18 @@ fn save_json_output(
         spritesheet.height(),
     );
 
-    let output_path = format!("{}/{}-{}.json", args.output_dir, args.uid, anim_name);
+    let output_path = format!("{}/{}-{}.json", args.output_dir, uid, anim_name);
     metadata::save_animation_json(&animation_json, &output_path)?;
     Ok(())
 }
 
 fn save_spritesheet(
     args: &Args,
+    uid: u32,
     anim_name: &str,
     spritesheet: image::RgbaImage,
 ) -> ffbetool::Result<()> {
-    let output_path = format!("{}/{}-{}.png", args.output_dir, args.uid, anim_name);
+    let output_path = format!("{}/{}-{}.png", args.output_dir, uid, anim_name);
     spritesheet.save(output_path)?;
     Ok(())
 }
@@ -494,7 +535,7 @@ mod tests {
     #[test]
     fn test_determine_animation_file_type() {
         let args_gif = Args {
-            uid: 123,
+            uid: UnitIdentifier::Id(123),
             anim: Some("test".to_string()),
             columns: 0,
             include_empty: false,
@@ -686,7 +727,7 @@ mod tests {
         let temp_path = temp_dir.path().to_str().unwrap();
 
         let args = Args {
-            uid: 123,
+            uid: UnitIdentifier::Id(123),
             anim: Some("test".to_string()),
             columns: 0,
             include_empty: false,
@@ -699,7 +740,7 @@ mod tests {
         };
 
         let spritesheet = image::RgbaImage::new(100, 100);
-        let result = save_spritesheet(&args, "test", spritesheet);
+        let result = save_spritesheet(&args, 123, "test", spritesheet);
 
         assert!(result.is_ok());
 
@@ -759,7 +800,7 @@ mod tests {
         let temp_path = temp_dir.path().to_str().unwrap();
 
         let args = Args {
-            uid: 123,
+            uid: UnitIdentifier::Id(123),
             anim: Some("test".to_string()),
             columns: 0,
             include_empty: false,
@@ -804,7 +845,7 @@ mod tests {
         };
         let spritesheet = image::RgbaImage::new(120, 70);
 
-        let result = save_json_output(&args, "test_anim", &frames, &frame_rect, &spritesheet);
+        let result = save_json_output(&args, 123, "test_anim", &frames, &frame_rect, &spritesheet);
         assert!(result.is_ok());
 
         let expected_path = format!("{}/123-test_anim.json", temp_path);

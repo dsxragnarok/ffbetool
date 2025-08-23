@@ -8,7 +8,7 @@ use crate::error::{FfbeError, Result};
 pub struct CharacterInfo {
     pub r#type: String,
     pub name: String,
-    pub rarity: String,
+    pub rarity: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -19,8 +19,14 @@ impl Db {
         Self(HashMap::<u32, CharacterInfo>::new())
     }
     pub fn from_file(path: &str) -> Result<Self> {
-        let contents = fs::read_to_string(path)?;
-        let db: Db = serde_json::from_str(&contents)?;
+        let contents = match fs::read_to_string(path) {
+            Ok(contents) => contents,
+            Err(err) => return Err(err.into()),
+        };
+        let db: Db = match serde_json::from_str(&contents) {
+            Ok(db) => db,
+            Err(err) => return Err(err.into()),
+        };
 
         Ok(db)
     }
@@ -30,11 +36,11 @@ impl Db {
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, u32, CharacterInfo> {
         self.0.iter()
     }
-    pub fn find_by_name(&self, name: &str) -> Result<CharacterInfo> {
+    pub fn find_by_name(&self, name: &str) -> Result<u32> {
         for (key, val) in self.iter() {
             if &val.name == name {
                 println!("Found character {name}, ID = {key}");
-                return Ok(val.clone());
+                return Ok(*key);
             }
         }
         Err(FfbeError::CharacterNotFound(String::from(name)))
@@ -69,18 +75,9 @@ mod test {
         db.insert(204000304, rosa.clone());
         db.insert(204000103, cecil.clone());
 
-        assert!(
-            db.find_by_name("Rosa")
-                .is_ok_and(|character| character == rosa)
-        );
-        assert!(
-            db.find_by_name("Cecil")
-                .is_ok_and(|character| character == cecil)
-        );
-        assert!(
-            db.find_by_name("Kain")
-                .is_ok_and(|character| character == kain)
-        )
+        assert!(db.find_by_name("Rosa").is_ok_and(|uid| uid == 204000304));
+        assert!(db.find_by_name("Cecil").is_ok_and(|uid| uid == 204000103));
+        assert!(db.find_by_name("Kain").is_ok_and(|uid| uid == 204000203))
     }
 
     #[test]
@@ -93,24 +90,25 @@ mod test {
         }"#;
 
         let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-        temp_file.write_all(json_content.as_bytes()).expect("Failed to write to temp file");
-        
+        temp_file
+            .write_all(json_content.as_bytes())
+            .expect("Failed to write to temp file");
+
         // Test loading from file
-        let db = Db::from_file(temp_file.path().to_str().unwrap()).expect("Failed to load from file");
-        
+        let db =
+            Db::from_file(temp_file.path().to_str().unwrap()).expect("Failed to load from file");
+
         // Verify the data was loaded correctly
         let rain = db.find_by_name("Rain").expect("Rain should be found");
-        assert_eq!(rain.name, "Rain");
-        assert_eq!(rain.r#type, "story");
-        assert_eq!(rain.rarity, "");
+        assert_eq!(rain, 100000102);
 
-        let lasswell = db.find_by_name("Lasswell").expect("Lasswell should be found");
-        assert_eq!(lasswell.name, "Lasswell");
-        assert_eq!(lasswell.r#type, "story");
+        let lasswell = db
+            .find_by_name("Lasswell")
+            .expect("Lasswell should be found");
+        assert_eq!(lasswell, 100000202);
 
         let fina = db.find_by_name("Fina").expect("Fina should be found");
-        assert_eq!(fina.name, "Fina");
-        assert_eq!(fina.r#type, "story");
+        assert_eq!(fina, 100000302);
 
         // Verify that a non-existent character returns an error
         assert!(db.find_by_name("NonExistent").is_err());
