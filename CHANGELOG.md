@@ -1,6 +1,15 @@
 ## Unreleased ([da242e3..39c244b](https://github.com/dsxragnarok/ffbetool/compare/da242e3..39c244b))
 
 - - -
+## [0.7.0](https://github.com/dsxragnarok/ffbetool/compare/39c244bfe961e13f3f26611f0f023129b2f88575..0.7.0) - 2025-08-23
+#### Features
+- impl cli args accepting uid or name - ([36c31c8](https://github.com/dsxragnarok/ffbetool/commit/36c31c8582dc0800e464b2544db349665e3e4bf4)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- impl load db from file - ([5d961a0](https://github.com/dsxragnarok/ffbetool/commit/5d961a03dda2496c5c3b4e0bd7b1048d3055ac4a)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- impl character db - ([ba4be33](https://github.com/dsxragnarok/ffbetool/commit/ba4be33e021bc675073afa82484ac57e8e8ec66b)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- impl json metadata output with --json option - ([c4aff6b](https://github.com/dsxragnarok/ffbetool/commit/c4aff6bbe23689b04b14fb79196dcd2527d5d621)) - [@dsxragnarok](https://github.com/dsxragnarok)
+
+- - -
+
 
 ## [0.6.0](https://github.com/dsxragnarok/ffbetool/compare/0.5.0..0.6.0) - 2025-08-20
 #### Features
