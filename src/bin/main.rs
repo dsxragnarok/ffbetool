@@ -100,8 +100,20 @@ fn main() -> ffbetool::Result<()> {
     let uid: u32 = match &args.uid {
         UnitIdentifier::Id(id) => *id,
         UnitIdentifier::Name(name) => match char_db.find_by_name(&name) {
-            Ok(uid) => uid,
-            Err(err) => return Err(err),
+            character_db::LookupResult::Found(id) => id,
+            character_db::LookupResult::NotFound => {
+                return Err(FfbeError::CharacterNotFound(name.to_owned()));
+            }
+            character_db::LookupResult::Multiple(similar_matches) => {
+                println!("Did you mean one of the following? Try again with the associated uid.");
+                let message = similar_matches
+                    .iter()
+                    .map(|(uid, char_info)| format!("{uid} -> {}", char_info.name))
+                    .collect::<Vec<String>>()
+                    .join("\n\t");
+                println!("\n\t{message}\n\n");
+                return Err(FfbeError::CharacterNotFound(name.to_owned()));
+            }
         },
     };
 
