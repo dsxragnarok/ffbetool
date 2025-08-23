@@ -59,17 +59,17 @@ mod test {
         let kain = CharacterInfo {
             r#type: String::from("summon"),
             name: String::from("Kain"),
-            rarity: String::from(""),
+            rarity: None,
         };
         let rosa = CharacterInfo {
             r#type: String::from("summon"),
             name: String::from("Rosa"),
-            rarity: String::from(""),
+            rarity: None,
         };
         let cecil = CharacterInfo {
             r#type: String::from("summon"),
             name: String::from("Cecil"),
-            rarity: String::from(""),
+            rarity: None,
         };
         db.insert(204000203, kain.clone());
         db.insert(204000304, rosa.clone());
