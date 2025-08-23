@@ -38,7 +38,7 @@ impl Db {
     }
     pub fn find_by_name(&self, name: &str) -> Result<u32> {
         for (key, val) in self.iter() {
-            if &val.name == name {
+            if val.name.to_lowercase() == name.to_lowercase() {
                 println!("Found character {name}, ID = {key}");
                 return Ok(*key);
             }
@@ -78,6 +78,26 @@ mod test {
         assert!(db.find_by_name("Rosa").is_ok_and(|uid| uid == 204000304));
         assert!(db.find_by_name("Cecil").is_ok_and(|uid| uid == 204000103));
         assert!(db.find_by_name("Kain").is_ok_and(|uid| uid == 204000203))
+    }
+
+    #[test]
+    fn test_find_character_by_name_case_insensitve() {
+        let mut db: Db = Db::new();
+        let rain = CharacterInfo {
+            r#type: String::from("summon"),
+            name: String::from("Rain"),
+            rarity: None,
+        };
+        let cecil = CharacterInfo {
+            r#type: String::from("summon"),
+            name: String::from("Cecil"),
+            rarity: None,
+        };
+        db.insert(100000102, rain);
+        db.insert(204000103, cecil);
+
+        assert!(db.find_by_name("RAIN").is_ok_and(|uid| uid == 100000102));
+        assert!(db.find_by_name("cEcIL").is_ok_and(|uid| uid == 204000103));
     }
 
     #[test]
