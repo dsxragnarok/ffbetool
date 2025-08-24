@@ -1,6 +1,15 @@
 ## Unreleased ([da242e3..39c244b](https://github.com/dsxragnarok/ffbetool/compare/da242e3..39c244b))
 
 - - -
+## [1.0.0](https://github.com/dsxragnarok/ffbetool/compare/eae61aa213fbe5c195091f74fc5dd681330c4fdb..1.0.0) - 2025-08-24
+#### Changes
+- **(character_db)** remove redundant exact match condition - ([01f0206](https://github.com/dsxragnarok/ffbetool/commit/01f02062195cc161d8e30db6010cc641c69ee8d9)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- optimize and cleanup - ([f5919e3](https://github.com/dsxragnarok/ffbetool/commit/f5919e3f8a31913e7a3db23196da6c4dc13176fe)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- impl better messaging when similar character names are found - ([60bd9f3](https://github.com/dsxragnarok/ffbetool/commit/60bd9f327081ffd91299d0aa65afb9880f43173f)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- make name search case-insensitive - ([296b15c](https://github.com/dsxragnarok/ffbetool/commit/296b15c0a3261a2c18a5fd56c196773c235e410a)) - [@dsxragnarok](https://github.com/dsxragnarok)
+
+- - -
+
 ## [0.7.0](https://github.com/dsxragnarok/ffbetool/compare/39c244bfe961e13f3f26611f0f023129b2f88575..0.7.0) - 2025-08-23
 #### Features
 - impl cli args accepting uid or name - ([36c31c8](https://github.com/dsxragnarok/ffbetool/commit/36c31c8582dc0800e464b2544db349665e3e4bf4)) - [@dsxragnarok](https://github.com/dsxragnarok)
