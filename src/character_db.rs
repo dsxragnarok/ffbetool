@@ -17,7 +17,7 @@ pub enum LookupResult {
     NotFound,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct Db(HashMap<u32, CharacterInfo>);
 
 impl Db {
@@ -47,10 +47,8 @@ impl Db {
         let mut similar_matches = Vec::new();
 
         for (uid, char_info) in self.iter() {
-            if char_info.name == name {
+            if char_info.name.eq_ignore_ascii_case(name) {
                 exact_matches.push((*uid, char_info.clone()));
-            } else if char_info.name.eq_ignore_ascii_case(name) {
-                similar_matches.push((*uid, char_info.clone()));
             } else if char_info
                 .name
                 .to_ascii_lowercase()
@@ -137,21 +135,17 @@ mod test {
 
         // Test case-insensitive matches (should return Multiple since no exact match)
         match db.find_by_name("RAIN") {
-            LookupResult::Multiple(matches) => {
-                assert_eq!(matches.len(), 1);
-                assert_eq!(matches[0].0, 100000102);
-                assert_eq!(matches[0].1.name, "Rain");
+            LookupResult::Found(uid) => {
+                assert_eq!(uid, 100000102);
             }
-            _ => panic!("Expected Multiple result for RAIN"),
+            _ => panic!("Expected Found result for RAIN"),
         }
 
         match db.find_by_name("cEcIL") {
-            LookupResult::Multiple(matches) => {
-                assert_eq!(matches.len(), 1);
-                assert_eq!(matches[0].0, 204000103);
-                assert_eq!(matches[0].1.name, "Cecil");
+            LookupResult::Found(uid) => {
+                assert_eq!(uid, 204000103);
             }
-            _ => panic!("Expected Multiple result for cEcIL"),
+            _ => panic!("Expected Found result for cEcIL"),
         }
     }
 
@@ -166,7 +160,7 @@ mod test {
         db.insert(100000102, rain);
 
         match db.find_by_name("NonExistent") {
-            LookupResult::NotFound => {}, // Expected
+            LookupResult::NotFound => {} // Expected
             _ => panic!("Expected NotFound result for NonExistent"),
         }
     }
@@ -189,7 +183,7 @@ mod test {
             name: String::from("Lightning (FFXIII-2)"),
             rarity: Some(String::from("NV")),
         };
-        
+
         db.insert(213000105, lightning1);
         db.insert(213001005, lightning2);
         db.insert(250000205, lightning3);
@@ -228,7 +222,7 @@ mod test {
             name: String::from("Dark Knight Cecil"),
             rarity: Some(String::from("4")),
         };
-        
+
         db.insert(213001005, radiant_lightning);
         db.insert(204000403, dark_knight_cecil);
 
@@ -289,7 +283,7 @@ mod test {
 
         // Verify that a non-existent character returns NotFound
         match db.find_by_name("NonExistent") {
-            LookupResult::NotFound => {}, // Expected
+            LookupResult::NotFound => {} // Expected
             _ => panic!("Expected NotFound result for NonExistent"),
         }
     }
