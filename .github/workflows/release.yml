@@ -101,6 +101,9 @@ jobs:
         # Copy additional files
         cp ../README.md "$release_dir/"
         cp ../LICENSE "$release_dir/"
+        if [ -f ../character_data.json ]; then
+          cp ../character_data.json "$release_dir"
+        fi
         
         # Create archive
         if [[ "${{ matrix.target }}" == *"windows"* ]]; then

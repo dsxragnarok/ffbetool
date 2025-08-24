@@ -26,6 +26,7 @@ post_package_bump_hooks = []
 [git_hooks]
 
 [commit_types]
+refactor = { changelog_title = "Changes", omit_from_changelog = false }
 test = { changelog_title = "", omit_from_changelog = true }
 chore = { changelog_title = "", omit_from_changelog = true }
 style = { changelog_title = "", omit_from_changelog = true }
