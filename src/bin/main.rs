@@ -92,14 +92,11 @@ impl From<&str> for AnimFileType {
 
 fn main() -> ffbetool::Result<()> {
     let args = Args::parse();
-    let char_db = match character_db::Db::from_file("character_data.json") {
-        Ok(db) => db,
-        Err(err) => return Err(err),
-    };
+    let char_db = character_db::Db::from_file("character_data.json")?;
 
     let uid: u32 = match &args.uid {
         UnitIdentifier::Id(id) => *id,
-        UnitIdentifier::Name(name) => match char_db.find_by_name(&name) {
+        UnitIdentifier::Name(name) => match char_db.find_by_name(name) {
             character_db::LookupResult::Found(id) => id,
             character_db::LookupResult::NotFound => {
                 return Err(FfbeError::CharacterNotFound(name.to_owned()));
@@ -152,18 +149,18 @@ fn process_single_animation(
     let mut composite_frames = process_animation_frames(args, uid, unit, src_img, anim_name)?;
 
     // Calculate frame bounds and resize empty frames, then crop frames
-    let frame_rect = calculate_frame_rect(&unit)?;
+    let frame_rect = calculate_frame_rect(unit)?;
     resize_empty_frames_to_bounds(&mut composite_frames, &frame_rect);
     crop_frames_to_bounds(&mut composite_frames, &frame_rect);
 
     // Generate outputs
-    save_animated_files(&args, uid, anim_name, &composite_frames, anim_file_type)?;
+    save_animated_files(args, uid, anim_name, &composite_frames, anim_file_type)?;
     let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
-    save_spritesheet(&args, uid, anim_name, spritesheet.clone())?;
+    save_spritesheet(args, uid, anim_name, spritesheet.clone())?;
 
     if args.save_json {
         save_json_output(
-            &args,
+            args,
             uid,
             anim_name,
             &composite_frames,
@@ -215,7 +212,7 @@ fn process_all_animations(
 
                         // Generate outputs
                         if let Err(err) = save_animated_files(
-                            &args,
+                            args,
                             uid,
                             &animation.name,
                             &composite_frames,
@@ -232,24 +229,24 @@ fn process_all_animations(
                         let spritesheet =
                             create_spritesheet(&composite_frames, &frame_rect, args.columns);
                         if let Err(err) =
-                            save_spritesheet(&args, uid, &animation.name, spritesheet.clone())
+                            save_spritesheet(args, uid, &animation.name, spritesheet.clone())
                         {
                             eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
                             failed_animations.push(animation.name.clone());
                             continue;
                         }
 
-                        if args.save_json {
-                            if let Err(err) = save_json_output(
-                                &args,
+                        if args.save_json
+                            && let Err(err) = save_json_output(
+                                args,
                                 uid,
                                 &animation.name,
                                 &composite_frames,
                                 &frame_rect,
                                 &spritesheet,
-                            ) {
-                                eprintln!("Failed to save JSON for {}: {}", animation.name, err);
-                            }
+                            )
+                        {
+                            eprintln!("Failed to save JSON for {}: {}", animation.name, err);
                         }
 
                         processed_count += 1;

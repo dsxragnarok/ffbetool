@@ -22,10 +22,10 @@ pub fn discover_animations(unit_id: u32, input_dir: &str) -> Result<Vec<Discover
 
     let mut animations = Vec::new();
 
-    let entries = fs::read_dir(input_path).map_err(|err| FfbeError::IoError(err))?;
+    let entries = fs::read_dir(input_path).map_err(FfbeError::IoError)?;
 
     for entry in entries {
-        let entry = entry.map_err(|err| FfbeError::IoError(err))?;
+        let entry = entry.map_err(FfbeError::IoError)?;
         let file_name = entry.file_name();
         let file_name = file_name.to_string_lossy();
 
