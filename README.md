@@ -12,6 +12,9 @@ to assemble the spritesheet.
 - **Flexible Layout**: Control spritesheet columns and include empty frames
 - **Smart Matching**: Case-insensitive character name lookup with partial matching
 
+## Download and Installation
+Go to the [Releases Page](https://github.com/dsxragnarok/ffbetool/releases) and download the package for your platform. Extract the binary to your preferred location. Then run the executable from the terminal.
+
 ## Usage
 ```bash
 Usage: ffbetool [OPTIONS] <UID>
