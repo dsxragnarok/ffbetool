@@ -1,3 +1,5 @@
+pub const REMOTE_DATA_FILE: &str =
+    "https://github.com/DaddyRaegen/ffbe_asset_dump/raw/refs/heads/main/data.json";
 /// Maximum value for an 8-bit channel (RGBA)
 pub const MAX_CHANNEL_U8: u8 = 255;
 pub const MAX_CHANNEL_F32: f32 = 255.0;

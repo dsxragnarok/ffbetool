@@ -4,7 +4,7 @@ use ffbetool::{
     cgg::{self},
     cgs::{self, process_frames},
     character_db,
-    constants::FRAME_PADDING,
+    constants::{FRAME_PADDING, REMOTE_DATA_FILE},
     discovery, metadata, validation,
 };
 use image::imageops;
@@ -92,7 +92,17 @@ impl From<&str> for AnimFileType {
 
 fn main() -> ffbetool::Result<()> {
     let args = Args::parse();
-    let char_db = character_db::Db::from_file("character_data.json")?;
+    let char_db = match character_db::Db::from_file("character_data.json") {
+        Ok(db) => db,
+        Err(_) => {
+            if let Ok(response) = reqwest::blocking::get(REMOTE_DATA_FILE) {
+                let body = response.text()?;
+                serde_json::from_str(&body)?
+            } else {
+                return Err(FfbeError::NoDatabaseFile);
+            }
+        }
+    };
 
     let uid: u32 = match &args.uid {
         UnitIdentifier::Id(id) => *id,
