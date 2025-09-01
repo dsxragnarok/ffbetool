@@ -96,8 +96,7 @@ fn main() -> ffbetool::Result<()> {
         Ok(db) => db,
         Err(_) => {
             if let Ok(response) = reqwest::blocking::get(REMOTE_DATA_FILE) {
-                let body = response.text()?;
-                serde_json::from_str(&body)?
+                response.json()?
             } else {
                 return Err(FfbeError::NoDatabaseFile);
             }

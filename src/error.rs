@@ -1,7 +1,6 @@
 use std::fmt;
 
 use apng::errors::APNGError;
-use reqwest;
 
 pub type Result<T> = std::result::Result<T, FfbeError>;
 
