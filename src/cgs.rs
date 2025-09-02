@@ -199,10 +199,12 @@ fn process_part(src_img: &DynamicImage, part: &cgg::PartData) -> RgbaImage {
         part_img = imageops::flip_vertical(&part_img);
     }
     if *rotate != 0 {
-        part_img = match rotate.rem_euclid(360) {
-            90 => imageops::rotate90(&part_img),
-            180 => imageops::rotate180(&part_img),
-            270 => imageops::rotate270(&part_img),
+        // Note: the data gives rotation counter-clockwise. The `imageops` crate rotates clockwise.
+        //       so we need to match them to the correct angle.
+        part_img = match *rotate {
+            90 | -270 => imageops::rotate270(&part_img),
+            180 | -180 => imageops::rotate180(&part_img),
+            270 | -90 => imageops::rotate90(&part_img),
             _ => part_img,
         };
     }
