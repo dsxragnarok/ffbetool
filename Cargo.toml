@@ -1,6 +1,6 @@
 [package]
 name = "ffbetool"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Kevin Phung <phung.kevin@gmail.com>"]
 edition = "2024"
 description = """

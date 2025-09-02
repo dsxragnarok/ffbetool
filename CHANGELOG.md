@@ -1,6 +1,16 @@
 ## Unreleased ([da242e3..39c244b](https://github.com/dsxragnarok/ffbetool/compare/da242e3..39c244b))
 
 - - -
+## [1.1.0](https://github.com/dsxragnarok/ffbetool/compare/e5d39222e20e98d89293d8182593b145940df2da..1.1.0) - 2025-09-02
+#### Bug Fixes
+- incorrect rotation handling - ([eb42944](https://github.com/dsxragnarok/ffbetool/commit/eb42944c4205dfb72e691c8e316aae7ca1eb99b0)) - [@dsxragnarok](https://github.com/dsxragnarok)
+#### Changes
+- use reqwest's json feature - ([b9ec542](https://github.com/dsxragnarok/ffbetool/commit/b9ec5425e2c43fffc7fc277fa5776152ddb5e848)) - [@dsxragnarok](https://github.com/dsxragnarok)
+#### Features
+- impl remote fallback for character db - ([4791ce0](https://github.com/dsxragnarok/ffbetool/commit/4791ce0661d7fc62c335d413d2202e1cf9057ab9)) - [@dsxragnarok](https://github.com/dsxragnarok)
+
+- - -
+
 ## [1.0.0](https://github.com/dsxragnarok/ffbetool/compare/eae61aa213fbe5c195091f74fc5dd681330c4fdb..1.0.0) - 2025-08-24
 #### Changes
 - **(character_db)** remove redundant exact match condition - ([01f0206](https://github.com/dsxragnarok/ffbetool/commit/01f02062195cc161d8e30db6010cc641c69ee8d9)) - [@dsxragnarok](https://github.com/dsxragnarok)
