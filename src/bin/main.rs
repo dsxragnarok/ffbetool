@@ -95,11 +95,8 @@ fn main() -> ffbetool::Result<()> {
     let char_db = match character_db::Db::from_file("character_data.json") {
         Ok(db) => db,
         Err(_) => {
-            if let Ok(response) = reqwest::blocking::get(REMOTE_DATA_FILE) {
-                response.json()?
-            } else {
-                return Err(FfbeError::NoDatabaseFile);
-            }
+            let body = ureq::get(REMOTE_DATA_FILE).call()?.into_string()?;
+            serde_json::from_str(&body)?
         }
     };
 

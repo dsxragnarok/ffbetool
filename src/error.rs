@@ -12,7 +12,7 @@ pub enum FfbeError {
     ImageError(image::ImageError),
     ApngError(APNGError),
     ParseError(String),
-    ReqwestError(String),
+    UreqError(String),
     FileNotFound(String),
     InvalidInput(String),
     NotImplemented(String),
@@ -27,7 +27,7 @@ impl fmt::Display for FfbeError {
             FfbeError::IoError(err) => write!(f, "IO errorerr: {err}"),
             FfbeError::ImageError(err) => write!(f, "Image errorerr: {err}"),
             FfbeError::ApngError(err) => write!(f, "APNG errorerr: {err}"),
-            FfbeError::ReqwestError(err) => write!(f, "Fetch errorerr: {err}"),
+            FfbeError::UreqError(err) => write!(f, "Fetch errorerr: {err}"),
             FfbeError::ParseError(msg) => write!(f, "Parse error: {msg}"),
             FfbeError::FileNotFound(path) => write!(f, "File not found: {path}"),
             FfbeError::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
@@ -63,8 +63,8 @@ impl From<serde_json::Error> for FfbeError {
     }
 }
 
-impl From<reqwest::Error> for FfbeError {
-    fn from(err: reqwest::Error) -> Self {
-        FfbeError::ReqwestError(err.to_string())
+impl From<ureq::Error> for FfbeError {
+    fn from(err: ureq::Error) -> Self {
+        FfbeError::UreqError(err.to_string())
     }
 }
