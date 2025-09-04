@@ -162,7 +162,7 @@ fn process_single_animation(
     // Generate outputs
     save_animated_files(args, uid, anim_name, &composite_frames, anim_file_type)?;
     let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
-    save_spritesheet(args, uid, anim_name, spritesheet.clone())?;
+    save_spritesheet(args, uid, anim_name, &spritesheet)?;
 
     if args.save_json {
         save_json_output(
@@ -234,8 +234,7 @@ fn process_all_animations(
 
                         let spritesheet =
                             create_spritesheet(&composite_frames, &frame_rect, args.columns);
-                        if let Err(err) =
-                            save_spritesheet(args, uid, &animation.name, spritesheet.clone())
+                        if let Err(err) = save_spritesheet(args, uid, &animation.name, &spritesheet)
                         {
                             eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
                             failed_animations.push(animation.name.clone());
@@ -535,7 +534,7 @@ fn save_spritesheet(
     args: &Args,
     uid: u32,
     anim_name: &str,
-    spritesheet: image::RgbaImage,
+    spritesheet: &image::RgbaImage,
 ) -> ffbetool::Result<()> {
     let output_path = format!("{}/{}-{}.png", args.output_dir, uid, anim_name);
     spritesheet.save(output_path)?;
@@ -755,7 +754,7 @@ mod tests {
         };
 
         let spritesheet = image::RgbaImage::new(100, 100);
-        let result = save_spritesheet(&args, 123, "test", spritesheet);
+        let result = save_spritesheet(&args, 123, "test", &spritesheet);
 
         assert!(result.is_ok());
 
