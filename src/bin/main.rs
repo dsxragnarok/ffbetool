@@ -73,7 +73,7 @@ struct Args {
     output_dir: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 enum AnimFileType {
     Gif,
     Apng,
@@ -222,7 +222,7 @@ fn process_all_animations(
                             uid,
                             &animation.name,
                             &composite_frames,
-                            anim_file_type.clone(),
+                            anim_file_type,
                         ) {
                             eprintln!(
                                 "Failed to save animated files for {}: {}",
