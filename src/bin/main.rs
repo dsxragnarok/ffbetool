@@ -373,13 +373,13 @@ fn create_cgs_frames(cgs_frames_meta: Vec<cgs::CgsMeta>, unit: &ffbetool::Unit) 
     cgs_frames_meta
         .into_iter()
         .map(|meta| {
-            let cgs::CgsMeta(frame_idx, x, y, delay) = meta;
+            let cgs::CgsMeta(frame_idx, frame_offset_x, frame_offset_y, delay) = meta;
             let parts = unit.frames[frame_idx].clone();
             cgs::Frame {
                 frame_idx,
                 parts,
-                x,
-                y,
+                offset_x: frame_offset_x,
+                offset_y: frame_offset_y,
                 delay,
             }
         })
@@ -407,10 +407,10 @@ fn resize_empty_frames_to_bounds(
     frame_rect: &ffbetool::imageops::Rect,
 ) {
     for frame in frames.iter_mut() {
-        // If this is an empty frame (1x1), resize it to full frame dimensions
         if frame.image.width() == 1 && frame.image.height() == 1 {
             // Create a new transparent image with full frame dimensions
             let mut full_frame = image::RgbaImage::new(frame_rect.width, frame_rect.height);
+
             // Fill with transparent pixels (this is the default, but being explicit)
             for pixel in full_frame.pixels_mut() {
                 *pixel = image::Rgba([0, 0, 0, 0]);

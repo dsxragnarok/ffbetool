@@ -10,7 +10,10 @@ pub mod validation;
 
 pub use error::{FfbeError, Result};
 
-// TODO: disambiguate all of these coordinates (x_pos, y_pos, img_x, img_y, x and y)
+// Coordinate naming convention:
+// - atlas_x/y: Source image coordinates for cropping
+// - canvas_x/y: Canvas positioning coordinates
+// - frame_offset_x/y: Animation frame positioning
 
 pub type Frames = Vec<cgg::FrameParts>;
 

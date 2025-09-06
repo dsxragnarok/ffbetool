@@ -4,16 +4,16 @@ use std::io::{self, BufReader};
 #[derive(Clone, Debug, Default)]
 pub struct PartData {
     pub anchor: i32,
-    pub x_pos: i32,
-    pub y_pos: i32,
+    pub canvas_x: i32,
+    pub canvas_y: i32,
     pub next_type: i32,
     pub blend_mode: i32,
     pub opacity: i32,
     pub rotate: i32,
-    pub img_x: u32,
-    pub img_y: u32,
-    pub img_width: u32,
-    pub img_height: u32,
+    pub atlas_x: u32,
+    pub atlas_y: u32,
+    pub atlas_width: u32,
+    pub atlas_height: u32,
     pub page_id: u32,
     pub index: usize,
     pub flip_x: bool,
@@ -70,30 +70,30 @@ pub fn process(text: &str, row: usize) -> Result<Option<FrameParts>> {
     for (index, chunk) in params.chunks(chunk_size).enumerate() {
         match chunk {
             [
-                x_pos,
-                y_pos,
+                canvas_x,
+                canvas_y,
                 next_type,
                 blend_mode,
                 opacity,
                 rotate,
-                img_x,
-                img_y,
-                img_width,
-                img_height,
+                atlas_x,
+                atlas_y,
+                atlas_width,
+                atlas_height,
                 page_id,
             ] => {
                 let part_data = PartData {
                     anchor,
-                    x_pos: parse_field(x_pos, "x_pos", row)?,
-                    y_pos: parse_field(y_pos, "y_pos", row)?,
+                    canvas_x: parse_field(canvas_x, "canvas_x", row)?,
+                    canvas_y: parse_field(canvas_y, "canvas_y", row)?,
                     next_type: parse_field(next_type, "next_type", row)?,
                     blend_mode: parse_field(blend_mode, "blend_mode", row)?,
                     opacity: parse_field(opacity, "opacity", row)?,
                     rotate: parse_field(rotate, "rotate", row)?,
-                    img_x: parse_field(img_x, "img_x", row)?,
-                    img_y: parse_field(img_y, "img_y", row)?,
-                    img_width: parse_field(img_width, "img_width", row)?,
-                    img_height: parse_field(img_height, "img_height", row)?,
+                    atlas_x: parse_field(atlas_x, "atlas_x", row)?,
+                    atlas_y: parse_field(atlas_y, "atlas_y", row)?,
+                    atlas_width: parse_field(atlas_width, "img_width", row)?,
+                    atlas_height: parse_field(atlas_height, "img_height", row)?,
                     page_id: parse_field(page_id, "page_id", row)?,
                     index,
                     flip_x: *next_type == "1" || *next_type == "3",
@@ -151,16 +151,16 @@ mod tests {
         assert_eq!(result.len(), 1);
         let part = &result[0];
         assert_eq!(part.anchor, 0);
-        assert_eq!(part.x_pos, -40);
-        assert_eq!(part.y_pos, -50);
+        assert_eq!(part.canvas_x, -40);
+        assert_eq!(part.canvas_y, -50);
         assert_eq!(part.next_type, 0);
         assert_eq!(part.blend_mode, 1);
         assert_eq!(part.opacity, 70);
         assert_eq!(part.rotate, 0);
-        assert_eq!(part.img_x, 704);
-        assert_eq!(part.img_y, 1232);
-        assert_eq!(part.img_width, 80);
-        assert_eq!(part.img_height, 64);
+        assert_eq!(part.atlas_x, 704);
+        assert_eq!(part.atlas_y, 1232);
+        assert_eq!(part.atlas_width, 80);
+        assert_eq!(part.atlas_height, 64);
         assert_eq!(part.page_id, 0);
         assert_eq!(part.index, 0);
         assert!(!part.flip_x);
@@ -176,17 +176,17 @@ mod tests {
 
         // First part (note: parts are reversed)
         let part1 = &result[0];
-        assert_eq!(part1.x_pos, 0);
-        assert_eq!(part1.y_pos, -60);
-        assert_eq!(part1.img_x, 744);
-        assert_eq!(part1.img_y, 1296);
+        assert_eq!(part1.canvas_x, 0);
+        assert_eq!(part1.canvas_y, -60);
+        assert_eq!(part1.atlas_x, 744);
+        assert_eq!(part1.atlas_y, 1296);
 
         // Second part
         let part2 = &result[1];
-        assert_eq!(part2.x_pos, -40);
-        assert_eq!(part2.y_pos, -50);
-        assert_eq!(part2.img_x, 704);
-        assert_eq!(part2.img_y, 1232);
+        assert_eq!(part2.canvas_x, -40);
+        assert_eq!(part2.canvas_y, -50);
+        assert_eq!(part2.atlas_x, 704);
+        assert_eq!(part2.atlas_y, 1232);
     }
 
     #[test]
@@ -245,7 +245,7 @@ mod tests {
             result
                 .unwrap_err()
                 .to_string()
-                .contains("Invalid x_pos value")
+                .contains("Invalid canvas_x value")
         );
     }
 

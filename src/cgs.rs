@@ -14,8 +14,8 @@ use crate::imageops::{BlendExt, ColorBoundsExt, OpacityExt, Rect};
 pub struct Frame {
     pub frame_idx: usize,
     pub parts: cgg::FrameParts,
-    pub x: i32,
-    pub y: i32,
+    pub offset_x: i32,
+    pub offset_y: i32,
     pub delay: u32,
 }
 
@@ -41,7 +41,7 @@ impl Frame {
     }
 }
 
-/// frame_index, x, y, delay
+/// frame_index, frame_offset_x, frame_offset_y, delay
 #[derive(Debug)]
 pub struct CgsMeta(pub usize, pub i32, pub i32, pub u32);
 
@@ -66,7 +66,7 @@ pub fn process(text: &str) -> Option<Result<CgsMeta, crate::FfbeError>> {
     }
 
     match params[..] {
-        [frame_index, x, y, delay] => {
+        [frame_index, frame_offset_x, frame_offset_y, delay] => {
             let frame_idx = match frame_index.parse() {
                 Ok(val) => val,
                 Err(_) => {
@@ -77,27 +77,27 @@ pub fn process(text: &str) -> Option<Result<CgsMeta, crate::FfbeError>> {
                 }
             };
 
-            let x_val = match x.parse() {
+            let frame_offset_x = match frame_offset_x.parse() {
                 Ok(val) => val,
                 Err(_) => {
                     return Some(Err(crate::FfbeError::ParseError(format!(
                         "Invalid x value: '{}'",
-                        x
+                        frame_offset_x
                     ))));
                 }
             };
 
-            let y_val = match y.parse() {
+            let frame_offset_y = match frame_offset_y.parse() {
                 Ok(val) => val,
                 Err(_) => {
                     return Some(Err(crate::FfbeError::ParseError(format!(
                         "Invalid y value: '{}'",
-                        y
+                        frame_offset_y
                     ))));
                 }
             };
 
-            let delay_val = match delay.parse() {
+            let delay = match delay.parse() {
                 Ok(val) => val,
                 Err(_) => {
                     return Some(Err(crate::FfbeError::ParseError(format!(
@@ -107,7 +107,12 @@ pub fn process(text: &str) -> Option<Result<CgsMeta, crate::FfbeError>> {
                 }
             };
 
-            Some(Ok(CgsMeta(frame_idx, x_val, y_val, delay_val)))
+            Some(Ok(CgsMeta(
+                frame_idx,
+                frame_offset_x,
+                frame_offset_y,
+                delay,
+            )))
         }
         _ => None,
     }
@@ -125,7 +130,7 @@ pub fn process_frames(
         .enumerate()
         .map(|(_frame_num, frame)| {
             let mut target_img = RgbaImage::new(CANVAS_SIZE, CANVAS_SIZE);
-            let frame_offset = (frame.x as i64, frame.y as i64);
+            let frame_offset = (frame.offset_x as i64, frame.offset_y as i64);
 
             for part in &frame.parts {
                 process_and_overlay_part(&mut target_img, src_img, frame_offset, part);
@@ -173,10 +178,10 @@ pub fn process_frames(
 /// Processes a single part into a ready-to-overlay image.
 fn process_part(src_img: &DynamicImage, part: &cgg::PartData) -> RgbaImage {
     let cgg::PartData {
-        img_x,
-        img_y,
-        img_width,
-        img_height,
+        atlas_x,
+        atlas_y,
+        atlas_width,
+        atlas_height,
         blend_mode,
         flip_x,
         flip_y,
@@ -187,7 +192,7 @@ fn process_part(src_img: &DynamicImage, part: &cgg::PartData) -> RgbaImage {
 
     // Zero-copy crop, then convert to owned image
     let mut part_img =
-        imageops::crop_imm(src_img, *img_x, *img_y, *img_width, *img_height).to_image();
+        imageops::crop_imm(src_img, *atlas_x, *atlas_y, *atlas_width, *atlas_height).to_image();
 
     if *blend_mode == 1 {
         part_img.blend();
@@ -248,10 +253,11 @@ fn process_and_overlay_part(
     overlay(
         target_img,
         &part_img,
-        HALF_CANVAS as i64 + frame_offset.0 + part.x_pos as i64,
-        HALF_CANVAS as i64 + frame_offset.1 + part.y_pos as i64,
+        HALF_CANVAS as i64 + frame_offset.0 + part.canvas_x as i64,
+        HALF_CANVAS as i64 + frame_offset.1 + part.canvas_y as i64,
     );
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,8 +344,8 @@ mod tests {
         let frame = Frame {
             frame_idx: 1,
             parts,
-            x: 10,
-            y: 20,
+            offset_x: 10,
+            offset_y: 20,
             delay: 100,
         };
 
@@ -418,8 +424,8 @@ mod tests {
         let frames = vec![Frame {
             frame_idx: 0,
             parts: vec![], // Empty parts - should create empty frame
-            x: 0,
-            y: 0,
+            offset_x: 0,
+            offset_y: 0,
             delay: 100,
         }];
 
