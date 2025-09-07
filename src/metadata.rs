@@ -7,15 +7,15 @@ pub struct AnimationJson {
     pub unit_id: u32,
     pub anim_name: String,
     pub frame_delays: Vec<u32>,
-    pub frame_rect: RectJson,
+    pub frame_rect: imageops::Rect,
     pub image_width: u32,
     pub image_height: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RectJson {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub width: u32,
     pub height: u32,
 }
@@ -25,7 +25,7 @@ impl AnimationJson {
         unit_id: u32,
         anim_name: String,
         frames: &[cgs::CompositeFrame],
-        frame_rect: &imageops::Rect,
+        frame_rect: imageops::Rect,
         spritesheet_width: u32,
         spritesheet_height: u32,
     ) -> Self {
@@ -35,12 +35,7 @@ impl AnimationJson {
             unit_id,
             anim_name,
             frame_delays,
-            frame_rect: RectJson {
-                x: frame_rect.x,
-                y: frame_rect.y,
-                width: frame_rect.width,
-                height: frame_rect.height,
-            },
+            frame_rect,
             image_width: spritesheet_width,
             image_height: spritesheet_height,
         }
@@ -107,7 +102,7 @@ mod tests {
             401012417,
             "atk".to_string(),
             &frames,
-            &frame_rect,
+            frame_rect,
             752,
             1344,
         );
@@ -129,7 +124,7 @@ mod tests {
             unit_id: 401012417,
             anim_name: "limit_atk".to_string(),
             frame_delays: vec![6, 5, 5, 5],
-            frame_rect: RectJson {
+            frame_rect: Rect {
                 x: 902,
                 y: 873,
                 width: 188,

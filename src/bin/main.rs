@@ -170,7 +170,7 @@ fn process_single_animation(
             uid,
             anim_name,
             &composite_frames,
-            &frame_rect,
+            frame_rect,
             &spritesheet,
         )?;
     }
@@ -247,7 +247,7 @@ fn process_all_animations(
                                 uid,
                                 &animation.name,
                                 &composite_frames,
-                                &frame_rect,
+                                frame_rect,
                                 &spritesheet,
                             )
                         {
@@ -395,8 +395,8 @@ fn calculate_frame_rect(unit: &ffbetool::Unit) -> ffbetool::Result<ffbetool::ima
         .ok_or(FfbeError::MissingValue("bottom_right".to_string()))?;
 
     Ok(ffbetool::imageops::Rect {
-        x: top_left.x() as u32,
-        y: top_left.y() as u32,
+        x: top_left.x(),
+        y: top_left.y(),
         width: (bottom_right.x() - top_left.x()) as u32 + FRAME_PADDING,
         height: (bottom_right.y() - top_left.y()) as u32 + FRAME_PADDING,
     })
@@ -430,8 +430,8 @@ fn crop_frames_to_bounds(
         if frame.image.width() > frame_rect.width || frame.image.height() > frame_rect.height {
             frame.image = imageops::crop(
                 &mut frame.image,
-                frame_rect.x,
-                frame_rect.y,
+                frame_rect.x as u32,
+                frame_rect.y as u32,
                 frame_rect.width,
                 frame_rect.height,
             )
@@ -513,7 +513,7 @@ fn save_json_output(
     uid: u32,
     anim_name: &str,
     frames: &[cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
+    frame_rect: ffbetool::imageops::Rect,
     spritesheet: &image::RgbaImage,
 ) -> ffbetool::Result<()> {
     let animation_json = metadata::AnimationJson::from_frames(
@@ -859,7 +859,7 @@ mod tests {
         };
         let spritesheet = image::RgbaImage::new(120, 70);
 
-        let result = save_json_output(&args, 123, "test_anim", &frames, &frame_rect, &spritesheet);
+        let result = save_json_output(&args, 123, "test_anim", &frames, frame_rect, &spritesheet);
         assert!(result.is_ok());
 
         let expected_path = format!("{}/123-test_anim.json", temp_path);

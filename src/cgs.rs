@@ -224,19 +224,19 @@ fn merge_bounding_box(unit: &mut crate::Unit, rect: &Rect) {
     match (unit.top_left, unit.bottom_right) {
         (Some(top_left), Some(bottom_right)) => {
             unit.top_left = Some(crate::imageops::Point::new(
-                top_left.x().min(rect.x as i32),
-                top_left.y().min(rect.y as i32),
+                top_left.x().min(rect.x),
+                top_left.y().min(rect.y),
             ));
             unit.bottom_right = Some(crate::imageops::Point::new(
-                bottom_right.x().max(rect.x as i32 + rect.width as i32),
-                bottom_right.y().max(rect.y as i32 + rect.height as i32),
+                bottom_right.x().max(rect.x + rect.width as i32),
+                bottom_right.y().max(rect.y + rect.height as i32),
             ));
         }
         _ => {
-            unit.top_left = Some(crate::imageops::Point::new(rect.x as i32, rect.y as i32));
+            unit.top_left = Some(crate::imageops::Point::new(rect.x, rect.y));
             unit.bottom_right = Some(crate::imageops::Point::new(
-                rect.x as i32 + rect.width as i32,
-                rect.y as i32 + rect.height as i32,
+                rect.x + rect.width as i32,
+                rect.y + rect.height as i32,
             ));
         }
     }

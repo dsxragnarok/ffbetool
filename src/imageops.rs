@@ -6,11 +6,12 @@ use crate::{
 use apng::{self, PNGImage, load_dynamic_image};
 use image::{self, ImageBuffer, Rgba};
 use png;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 pub struct Rect {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub width: u32,
     pub height: u32,
 }
@@ -138,8 +139,8 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
 
         if found {
             Some(Rect {
-                x: min_x,
-                y: min_y,
+                x: min_x as i32,
+                y: min_y as i32,
                 width: max_x - min_x + 1,
                 height: max_y - min_y + 1,
             })
