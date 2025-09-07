@@ -12,14 +12,6 @@ pub struct AnimationJson {
     pub image_height: u32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct RectJson {
-    pub x: i32,
-    pub y: i32,
-    pub width: u32,
-    pub height: u32,
-}
-
 impl AnimationJson {
     pub fn from_frames(
         unit_id: u32,

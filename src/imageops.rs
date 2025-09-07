@@ -150,7 +150,7 @@ impl ColorBoundsExt for ImageBuffer<Rgba<u8>, Vec<u8>> {
     }
 }
 
-// TODO: Optimize this function. It's strange that we need to pass in a full
+// Note: It's strange that we need to pass in a full
 // list of PNGImage in order to create the config when the `create_config` is
 // only using the first image in that list. This causes us to have to loop through
 // our frames twice.

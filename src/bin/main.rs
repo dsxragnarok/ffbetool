@@ -120,7 +120,6 @@ fn main() -> ffbetool::Result<()> {
         },
     };
 
-    // Validate inputs early
     validation::validate_input_args(uid, &args.input_dir, args.anim.as_deref())?;
     validation::validate_output_dir(&args.output_dir)?;
 
@@ -156,12 +155,12 @@ fn process_single_animation(
 
     // Calculate frame bounds and resize empty frames, then crop frames
     let frame_rect = calculate_frame_rect(unit)?;
-    resize_empty_frames_to_bounds(&mut composite_frames, &frame_rect);
-    crop_frames_to_bounds(&mut composite_frames, &frame_rect);
+    resize_empty_frames_to_bounds(&mut composite_frames, frame_rect);
+    crop_frames_to_bounds(&mut composite_frames, frame_rect);
 
     // Generate outputs
     save_animated_files(args, uid, anim_name, &composite_frames, anim_file_type)?;
-    let spritesheet = create_spritesheet(&composite_frames, &frame_rect, args.columns);
+    let spritesheet = create_spritesheet(&composite_frames, frame_rect, args.columns);
     save_spritesheet(args, uid, anim_name, &spritesheet)?;
 
     if args.save_json {
@@ -213,8 +212,8 @@ fn process_all_animations(
                 // Calculate frame bounds and resize empty frames, then crop frames
                 match calculate_frame_rect(&unit) {
                     Ok(frame_rect) => {
-                        resize_empty_frames_to_bounds(&mut composite_frames, &frame_rect);
-                        crop_frames_to_bounds(&mut composite_frames, &frame_rect);
+                        resize_empty_frames_to_bounds(&mut composite_frames, frame_rect);
+                        crop_frames_to_bounds(&mut composite_frames, frame_rect);
 
                         // Generate outputs
                         if let Err(err) = save_animated_files(
@@ -233,7 +232,7 @@ fn process_all_animations(
                         }
 
                         let spritesheet =
-                            create_spritesheet(&composite_frames, &frame_rect, args.columns);
+                            create_spritesheet(&composite_frames, frame_rect, args.columns);
                         if let Err(err) = save_spritesheet(args, uid, &animation.name, &spritesheet)
                         {
                             eprintln!("Failed to save spritesheet for {}: {}", animation.name, err);
@@ -404,27 +403,20 @@ fn calculate_frame_rect(unit: &ffbetool::Unit) -> ffbetool::Result<ffbetool::ima
 
 fn resize_empty_frames_to_bounds(
     frames: &mut [cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
+    frame_rect: ffbetool::imageops::Rect,
 ) {
     for frame in frames.iter_mut() {
         if frame.image.width() == 1 && frame.image.height() == 1 {
             // Create a new transparent image with full frame dimensions
-            let mut full_frame = image::RgbaImage::new(frame_rect.width, frame_rect.height);
+            let full_frame = image::RgbaImage::new(frame_rect.width, frame_rect.height);
 
-            // Fill with transparent pixels (this is the default, but being explicit)
-            for pixel in full_frame.pixels_mut() {
-                *pixel = image::Rgba([0, 0, 0, 0]);
-            }
             frame.image = full_frame;
-            frame.rect = *frame_rect;
+            frame.rect = frame_rect;
         }
     }
 }
 
-fn crop_frames_to_bounds(
-    frames: &mut [cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
-) {
+fn crop_frames_to_bounds(frames: &mut [cgs::CompositeFrame], frame_rect: ffbetool::imageops::Rect) {
     frames.iter_mut().for_each(|frame| {
         // Only crop frames that are larger than the target size
         if frame.image.width() > frame_rect.width || frame.image.height() > frame_rect.height {
@@ -463,7 +455,7 @@ fn save_animated_files(
 
 fn create_spritesheet(
     frames: &[cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
+    frame_rect: ffbetool::imageops::Rect,
     columns: usize,
 ) -> image::RgbaImage {
     if columns == 0 || columns >= frames.len() {
@@ -475,7 +467,7 @@ fn create_spritesheet(
 
 fn create_single_row_spritesheet(
     frames: &[cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
+    frame_rect: ffbetool::imageops::Rect,
 ) -> image::RgbaImage {
     let mut sheet =
         image::RgbaImage::new(frame_rect.width * (frames.len() as u32), frame_rect.height);
@@ -490,7 +482,7 @@ fn create_single_row_spritesheet(
 
 fn create_multi_row_spritesheet(
     frames: &[cgs::CompositeFrame],
-    frame_rect: &ffbetool::imageops::Rect,
+    frame_rect: ffbetool::imageops::Rect,
     columns: usize,
 ) -> image::RgbaImage {
     let rows = (frames.len() as f32 / columns as f32).ceil() as u32;
@@ -664,7 +656,7 @@ mod tests {
             width: 50,
             height: 50,
         };
-        let sheet = create_single_row_spritesheet(&frames, &frame_rect);
+        let sheet = create_single_row_spritesheet(&frames, frame_rect);
 
         assert_eq!(sheet.width(), 100); // 2 frames * 50 width
         assert_eq!(sheet.height(), 50);
@@ -714,7 +706,7 @@ mod tests {
             width: 50,
             height: 50,
         };
-        let sheet = create_multi_row_spritesheet(&frames, &frame_rect, 2);
+        let sheet = create_multi_row_spritesheet(&frames, frame_rect, 2);
 
         assert_eq!(sheet.width(), 100); // 2 columns * 50 width
         assert_eq!(sheet.height(), 100); // 2 rows * 50 height (3 frames, 2 columns = 2 rows)
@@ -795,7 +787,7 @@ mod tests {
             width: 50,
             height: 50,
         };
-        resize_empty_frames_to_bounds(&mut frames, &frame_rect);
+        resize_empty_frames_to_bounds(&mut frames, frame_rect);
 
         // Empty frame should now be resized to full dimensions
         assert_eq!(frames[0].image.width(), 50);
