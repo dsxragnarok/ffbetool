@@ -1,4 +1,4 @@
-use crate::{FfbeError, Result};
+use crate::{FfbeError, Result, UnitType};
 use std::fs;
 use std::path::Path;
 
@@ -10,7 +10,11 @@ pub struct DiscoveredAnimation {
 }
 
 /// Discovers all CGS animation files for a given unit in the specified directory
-pub fn discover_animations(unit_id: u32, input_dir: &str) -> Result<Vec<DiscoveredAnimation>> {
+pub fn discover_animations(
+    unit_id: u32,
+    unit_type: &UnitType,
+    input_dir: &str,
+) -> Result<Vec<DiscoveredAnimation>> {
     let input_path = Path::new(input_dir);
 
     if !input_path.exists() {
@@ -30,7 +34,7 @@ pub fn discover_animations(unit_id: u32, input_dir: &str) -> Result<Vec<Discover
         let file_name = file_name.to_string_lossy();
 
         // Look for files matching pattern: unit_{animation_name}_cgs_{unit_id}.csv
-        if let Some(animation_name) = extract_animation_name(&file_name, unit_id) {
+        if let Some(animation_name) = extract_animation_name(&file_name, unit_id, unit_type) {
             animations.push(DiscoveredAnimation {
                 name: animation_name,
                 file_path: entry.path().to_string_lossy().to_string(),
@@ -52,16 +56,16 @@ pub fn discover_animations(unit_id: u32, input_dir: &str) -> Result<Vec<Discover
 }
 
 /// Extracts animation name from CGS filename
-/// Expected format: unit_{animation_name}_cgs_{unit_id}.csv
-fn extract_animation_name(filename: &str, unit_id: u32) -> Option<String> {
+/// Expected format: {unit_type}_{animation_name}_cgs_{unit_id}.csv
+fn extract_animation_name(filename: &str, unit_id: u32, unit_type: &UnitType) -> Option<String> {
     if !filename.ends_with(".csv") {
         return None;
     }
 
-    let expected_prefix = "unit_";
+    let expected_prefix = format!("{}_", unit_type.file_str());
     let expected_suffix = format!("_cgs_{}.csv", unit_id);
 
-    if filename.starts_with(expected_prefix) && filename.ends_with(&expected_suffix) {
+    if filename.starts_with(&expected_prefix) && filename.ends_with(&expected_suffix) {
         // Extract the middle part (animation name)
         let start = expected_prefix.len();
         let end = filename.len() - expected_suffix.len();
@@ -85,24 +89,39 @@ mod tests {
     fn test_extract_animation_name() {
         // Valid cases
         assert_eq!(
-            extract_animation_name("unit_atk_cgs_123.csv", 123),
+            extract_animation_name("unit_atk_cgs_123.csv", 123, &UnitType::Character),
             Some("atk".to_string())
         );
         assert_eq!(
-            extract_animation_name("unit_limit_atk_cgs_456.csv", 456),
+            extract_animation_name("unit_limit_atk_cgs_456.csv", 456, &UnitType::Character),
             Some("limit_atk".to_string())
         );
         assert_eq!(
-            extract_animation_name("unit_magic_standby_cgs_789.csv", 789),
+            extract_animation_name("unit_magic_standby_cgs_789.csv", 789, &UnitType::Character),
             Some("magic_standby".to_string())
         );
 
         // Invalid cases
-        assert_eq!(extract_animation_name("unit_atk_cgs_123.csv", 456), None); // Wrong unit ID
-        assert_eq!(extract_animation_name("unit_atk_cgs_123.txt", 123), None); // Wrong extension
-        assert_eq!(extract_animation_name("other_atk_cgs_123.csv", 123), None); // Wrong prefix
-        assert_eq!(extract_animation_name("unit_atk_other_123.csv", 123), None); // Wrong pattern
-        assert_eq!(extract_animation_name("unit__cgs_123.csv", 123), None); // Empty animation name
+        assert_eq!(
+            extract_animation_name("unit_atk_cgs_123.csv", 456, &UnitType::Character),
+            None
+        ); // Wrong unit ID
+        assert_eq!(
+            extract_animation_name("unit_atk_cgs_123.txt", 123, &UnitType::Character),
+            None
+        ); // Wrong extension
+        assert_eq!(
+            extract_animation_name("other_atk_cgs_123.csv", 123, &UnitType::Character),
+            None
+        ); // Wrong prefix
+        assert_eq!(
+            extract_animation_name("unit_atk_other_123.csv", 123, &UnitType::Character),
+            None
+        ); // Wrong pattern
+        assert_eq!(
+            extract_animation_name("unit__cgs_123.csv", 123, &UnitType::Character),
+            None
+        ); // Empty animation name
     }
 
     #[test]
@@ -110,7 +129,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().to_str().unwrap();
 
-        let result = discover_animations(123, temp_path);
+        let result = discover_animations(123, &UnitType::Character, temp_path);
         assert!(result.is_err());
         assert!(
             result
@@ -147,7 +166,7 @@ mod tests {
         fs::write(format!("{}/other_file.txt", temp_path), "not a cgs file").unwrap();
         fs::write(format!("{}/unit_cgg_123.csv", temp_path), "cgg file").unwrap();
 
-        let result = discover_animations(123, temp_path).unwrap();
+        let result = discover_animations(123, &UnitType::Character, temp_path).unwrap();
 
         assert_eq!(result.len(), 3);
 
@@ -164,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_discover_animations_nonexistent_directory() {
-        let result = discover_animations(123, "nonexistent_directory");
+        let result = discover_animations(123, &UnitType::Character, "nonexistent_directory");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Input directory"));
     }

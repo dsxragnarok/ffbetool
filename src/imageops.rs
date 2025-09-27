@@ -1,4 +1,5 @@
 use crate::{
+    UnitType,
     cgs::CompositeFrame,
     constants::{ALPHA_TRANSPARENT_U8, DEFAULT_FPS, MAX_CHANNEL_F32, RGB_CHANNEL_COUNT},
     error,
@@ -32,8 +33,12 @@ impl Point {
     }
 }
 
-pub fn load_source_image(unit_id: u32, input_path: &str) -> error::Result<image::DynamicImage> {
-    let path = format!("{input_path}/unit_anime_{unit_id}.png");
+pub fn load_source_image(
+    unit_id: u32,
+    unit_type: &UnitType,
+    input_path: &str,
+) -> error::Result<image::DynamicImage> {
+    let path = format!("{input_path}/{}_anime_{unit_id}.png", unit_type.file_str());
     let img = image::open(path)?;
     Ok(img)
 }
@@ -344,13 +349,13 @@ mod tests {
 
     #[test]
     fn test_load_source_image_nonexistent() {
-        let result = load_source_image(99999, "nonexistent_path");
+        let result = load_source_image(99999, &UnitType::Character, "nonexistent_path");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_load_source_image_existing() {
-        let result = load_source_image(204000103, "test_data");
+        let result = load_source_image(204000103, &UnitType::Character, "test_data");
         assert!(result.is_ok());
 
         let img = result.unwrap();

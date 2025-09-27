@@ -1,6 +1,6 @@
 use clap::Parser;
 use ffbetool::{
-    self, FfbeError,
+    self, FfbeError, UnitType,
     cgg::{self},
     cgs::{self, process_frames},
     character_db,
@@ -71,6 +71,10 @@ struct Args {
     /// The output directory
     #[arg(short = 'o', long = "output", default_value = ".")]
     output_dir: String,
+
+    /// Unit type (character, monster)
+    #[arg(long = "unit_type", default_value = "character")]
+    unit_type: UnitType,
 }
 
 #[derive(Clone, Copy)]
@@ -120,15 +124,15 @@ fn main() -> ffbetool::Result<()> {
         },
     };
 
-    validation::validate_input_args(uid, &args.input_dir, args.anim.as_deref())?;
+    validation::validate_input_args(uid, &args.input_dir, &args.unit_type, args.anim.as_deref())?;
     validation::validate_output_dir(&args.output_dir)?;
 
     let anim_file_type = determine_animation_file_type(&args);
 
     // Load and process frame data
-    let frames = load_cgg_frames(uid, &args.input_dir)?;
+    let frames = load_cgg_frames(uid, &args.unit_type, &args.input_dir)?;
     let mut unit = create_unit(uid, frames);
-    let src_img = ffbetool::imageops::load_source_image(uid, &args.input_dir)?;
+    let src_img = ffbetool::imageops::load_source_image(uid, &args.unit_type, &args.input_dir)?;
 
     // Process animations based on whether a specific animation was requested
     match args.anim.as_deref() {
@@ -136,7 +140,14 @@ fn main() -> ffbetool::Result<()> {
             process_single_animation(&args, uid, &mut unit, &src_img, anim_name, anim_file_type)?;
         }
         None => {
-            process_all_animations(&args, uid, &mut unit, &src_img, anim_file_type)?;
+            process_all_animations(
+                &args,
+                uid,
+                &mut unit,
+                &args.unit_type,
+                &src_img,
+                anim_file_type,
+            )?;
         }
     }
 
@@ -182,10 +193,11 @@ fn process_all_animations(
     args: &Args,
     uid: u32,
     unit: &mut ffbetool::Unit,
+    unit_type: &UnitType,
     src_img: &image::DynamicImage,
     anim_file_type: AnimFileType,
 ) -> ffbetool::Result<()> {
-    let discovered_animations = discovery::discover_animations(uid, &args.input_dir)?;
+    let discovered_animations = discovery::discover_animations(uid, unit_type, &args.input_dir)?;
 
     println!(
         "Discovered {} animations for unit {}: {}",
@@ -294,10 +306,14 @@ fn determine_animation_file_type(args: &Args) -> AnimFileType {
     }
 }
 
-fn load_cgg_frames(unit_id: u32, input_path: &str) -> ffbetool::Result<Vec<cgg::FrameParts>> {
+fn load_cgg_frames(
+    unit_id: u32,
+    unit_type: &UnitType,
+    input_path: &str,
+) -> ffbetool::Result<Vec<cgg::FrameParts>> {
     println!("ffbetool on {unit_id} cgg-file:[{input_path}]");
 
-    let reader = cgg::read_file(unit_id, input_path).map_err(|err| {
+    let reader = cgg::read_file(unit_id, unit_type, input_path).map_err(|err| {
         eprintln!("failed to process cgg file: {err}");
         err
     })?;
@@ -333,7 +349,7 @@ fn process_animation_frames(
     src_img: &image::DynamicImage,
     anim_name: &str,
 ) -> ffbetool::Result<Vec<cgs::CompositeFrame>> {
-    let cgs_frames_meta = load_cgs_metadata(uid, anim_name, &args.input_dir)?;
+    let cgs_frames_meta = load_cgs_metadata(uid, &args.unit_type, anim_name, &args.input_dir)?;
     let frames = create_cgs_frames(cgs_frames_meta, unit);
     let composite_frames = process_frames(&frames, src_img, unit, args.include_empty);
 
@@ -342,10 +358,11 @@ fn process_animation_frames(
 
 fn load_cgs_metadata(
     unit_id: u32,
+    unit_type: &UnitType,
     anim_name: &str,
     input_path: &str,
 ) -> ffbetool::Result<Vec<cgs::CgsMeta>> {
-    let reader = cgs::read_file(unit_id, anim_name, input_path)
+    let reader = cgs::read_file(unit_id, unit_type, anim_name, input_path)
         .map_err(|err| FfbeError::ParseError(format!("failed to process cgs file: {err}")))?;
 
     let mut cgs_frames_meta = Vec::new();
@@ -536,6 +553,7 @@ fn save_spritesheet(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ffbetool::UnitType;
     use tempfile::TempDir;
 
     #[test]
@@ -551,6 +569,7 @@ mod tests {
             save_apng: false,
             input_dir: ".".to_string(),
             output_dir: ".".to_string(),
+            unit_type: UnitType::Character,
         };
 
         let args_apng = Args {
@@ -714,13 +733,13 @@ mod tests {
 
     #[test]
     fn test_load_cgg_frames_nonexistent() {
-        let result = load_cgg_frames(99999, "nonexistent_path");
+        let result = load_cgg_frames(99999, &UnitType::Character, "nonexistent_path");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_load_cgg_frames_existing() {
-        let result = load_cgg_frames(204000103, "test_data");
+        let result = load_cgg_frames(204000103, &UnitType::Character, "test_data");
         assert!(result.is_ok());
 
         let frames = result.unwrap();
@@ -743,6 +762,7 @@ mod tests {
             save_apng: false,
             input_dir: ".".to_string(),
             output_dir: temp_path.to_string(),
+            unit_type: UnitType::Character,
         };
 
         let spritesheet = image::RgbaImage::new(100, 100);
@@ -816,6 +836,7 @@ mod tests {
             save_apng: false,
             input_dir: ".".to_string(),
             output_dir: temp_path.to_string(),
+            unit_type: UnitType::Character,
         };
 
         let frames = vec![

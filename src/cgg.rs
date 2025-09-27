@@ -1,3 +1,4 @@
+use crate::UnitType;
 use std::fs::File;
 use std::io::{self, BufReader};
 
@@ -23,8 +24,12 @@ pub struct PartData {
 
 pub type FrameParts = Vec<PartData>;
 
-pub fn read_file(unit_id: u32, input_path: &str) -> io::Result<BufReader<File>> {
-    let file_path = format!("{input_path}/unit_cgg_{unit_id}.csv");
+pub fn read_file(
+    unit_id: u32,
+    unit_type: &UnitType,
+    input_path: &str,
+) -> io::Result<BufReader<File>> {
+    let file_path = format!("{input_path}/{}_cgg_{unit_id}.csv", unit_type.file_str());
     println!("[cgg] processing `cgg` file [{file_path}]");
 
     let file = File::open(file_path)?;
@@ -264,13 +269,13 @@ mod tests {
 
     #[test]
     fn test_read_file_nonexistent() {
-        let result = read_file(99999, "nonexistent_path");
+        let result = read_file(99999, &UnitType::Character, "nonexistent_path");
         assert!(result.is_err());
     }
 
     #[test]
     fn test_read_file_existing() {
-        let result = read_file(204000103, "test_data");
+        let result = read_file(204000103, &UnitType::Character, "test_data");
         assert!(result.is_ok());
     }
 }

@@ -1,7 +1,12 @@
-use crate::{FfbeError, Result};
+use crate::{FfbeError, Result, UnitType};
 use std::path::Path;
 
-pub fn validate_input_args(uid: u32, input_dir: &str, anim_name: Option<&str>) -> Result<()> {
+pub fn validate_input_args(
+    uid: u32,
+    input_dir: &str,
+    unit_type: &UnitType,
+    anim_name: Option<&str>,
+) -> Result<()> {
     // Validate unit ID
     if uid == 0 {
         return Err(FfbeError::InvalidInput(
@@ -18,19 +23,25 @@ pub fn validate_input_args(uid: u32, input_dir: &str, anim_name: Option<&str>) -
     }
 
     // Validate required files exist
-    let atlas_file = format!("{}/unit_anime_{}.png", input_dir, uid);
+    let atlas_file = format!("{}/{}_anime_{}.png", input_dir, unit_type.file_str(), uid);
     if !Path::new(&atlas_file).exists() {
         return Err(FfbeError::FileNotFound(atlas_file));
     }
 
-    let cgg_file = format!("{}/unit_cgg_{}.csv", input_dir, uid);
+    let cgg_file = format!("{}/{}_cgg_{}.csv", input_dir, unit_type.file_str(), uid);
     if !Path::new(&cgg_file).exists() {
         return Err(FfbeError::FileNotFound(cgg_file));
     }
 
     // Validate animation file if specified (for single animation mode)
     if let Some(anim) = anim_name {
-        let cgs_file = format!("{}/unit_{}_cgs_{}.csv", input_dir, anim, uid);
+        let cgs_file = format!(
+            "{}/{}_{}_cgs_{}.csv",
+            input_dir,
+            unit_type.file_str(),
+            anim,
+            uid
+        );
         if !Path::new(&cgs_file).exists() {
             return Err(FfbeError::FileNotFound(cgs_file));
         }
@@ -63,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_validate_input_args_zero_uid() {
-        let result = validate_input_args(0, "test_data", Some("atk"));
+        let result = validate_input_args(0, "test_data", &UnitType::Character, Some("atk"));
         assert!(result.is_err());
         assert!(
             result
@@ -75,14 +86,15 @@ mod tests {
 
     #[test]
     fn test_validate_input_args_nonexistent_dir() {
-        let result = validate_input_args(12345, "nonexistent_dir", Some("atk"));
+        let result =
+            validate_input_args(12345, "nonexistent_dir", &UnitType::Character, Some("atk"));
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Input directory"));
     }
 
     #[test]
     fn test_validate_input_args_missing_atlas() {
-        let result = validate_input_args(99999, "test_data", Some("atk"));
+        let result = validate_input_args(99999, "test_data", &UnitType::Character, Some("atk"));
         assert!(result.is_err());
         assert!(
             result
@@ -101,7 +113,7 @@ mod tests {
         // Create a dummy atlas file
         fs::write(format!("{}/unit_anime_12345.png", temp_dir), b"dummy").unwrap();
 
-        let result = validate_input_args(12345, temp_dir, Some("atk"));
+        let result = validate_input_args(12345, temp_dir, &UnitType::Character, Some("atk"));
         assert!(result.is_err());
         assert!(
             result
@@ -123,7 +135,12 @@ mod tests {
         fs::write(format!("{}/unit_anime_12345.png", temp_dir), b"dummy").unwrap();
         fs::write(format!("{}/unit_cgg_12345.csv", temp_dir), b"dummy").unwrap();
 
-        let result = validate_input_args(12345, temp_dir, Some("nonexistent_anim"));
+        let result = validate_input_args(
+            12345,
+            temp_dir,
+            &UnitType::Character,
+            Some("nonexistent_anim"),
+        );
         assert!(result.is_err());
         assert!(
             result
@@ -138,13 +155,13 @@ mod tests {
 
     #[test]
     fn test_validate_input_args_valid() {
-        let result = validate_input_args(204000103, "test_data", Some("atk"));
+        let result = validate_input_args(204000103, "test_data", &UnitType::Character, Some("atk"));
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_input_args_no_anim() {
-        let result = validate_input_args(204000103, "test_data", None);
+        let result = validate_input_args(204000103, "test_data", &UnitType::Character, None);
         assert!(result.is_ok());
     }
 

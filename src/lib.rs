@@ -8,6 +8,8 @@ pub mod imageops;
 pub mod metadata;
 pub mod validation;
 
+use std::str::FromStr;
+
 pub use error::{FfbeError, Result};
 
 // Coordinate naming convention:
@@ -27,4 +29,33 @@ pub struct Unit {
     pub height: Option<u32>,
     pub x_offset: Option<i32>,
     pub y_offset: Option<i32>,
+}
+
+#[derive(Clone)]
+pub enum UnitType {
+    Character,
+    Monster,
+}
+
+impl UnitType {
+    pub fn file_str(&self) -> &str {
+        match self {
+            Self::Character => "unit",
+            Self::Monster => "monster",
+        }
+    }
+}
+
+impl FromStr for UnitType {
+    type Err = FfbeError;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "char" | "character" => Ok(Self::Character),
+            "monster" => Ok(Self::Monster),
+            _ => Err(FfbeError::ParseError(
+                "Failed to parse UnitType".to_string(),
+            )),
+        }
+    }
 }

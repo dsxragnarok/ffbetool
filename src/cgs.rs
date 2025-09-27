@@ -6,9 +6,9 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, BufReader};
 
-use crate::cgg;
 use crate::constants::{CANVAS_SIZE, HALF_CANVAS};
 use crate::imageops::{BlendExt, ColorBoundsExt, OpacityExt, Rect};
+use crate::{UnitType, cgg};
 
 #[derive(Clone)]
 pub struct Frame {
@@ -45,8 +45,16 @@ impl Frame {
 #[derive(Debug)]
 pub struct CgsMeta(pub usize, pub i32, pub i32, pub u32);
 
-pub fn read_file(unit_id: u32, anim_name: &str, input_path: &str) -> io::Result<BufReader<File>> {
-    let file_path = format!("{input_path}/unit_{anim_name}_cgs_{unit_id}.csv");
+pub fn read_file(
+    unit_id: u32,
+    unit_type: &UnitType,
+    anim_name: &str,
+    input_path: &str,
+) -> io::Result<BufReader<File>> {
+    let file_path = format!(
+        "{input_path}/{}_{anim_name}_cgs_{unit_id}.csv",
+        unit_type.file_str()
+    );
     println!("[cgs] processing `cgs` file [{file_path}]");
 
     let file = File::open(file_path)?;
@@ -366,13 +374,18 @@ mod tests {
 
     #[test]
     fn test_read_file_nonexistent() {
-        let result = read_file(99999, "nonexistent", "nonexistent_path");
+        let result = read_file(
+            99999,
+            &UnitType::Character,
+            "nonexistent",
+            "nonexistent_path",
+        );
         assert!(result.is_err());
     }
 
     #[test]
     fn test_read_file_existing() {
-        let result = read_file(204000103, "atk", "test_data");
+        let result = read_file(204000103, &UnitType::Character, "atk", "test_data");
         assert!(result.is_ok());
     }
 
