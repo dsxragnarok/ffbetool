@@ -1,6 +1,19 @@
 ## Unreleased ([da242e3..39c244b](https://github.com/dsxragnarok/ffbetool/compare/da242e3..39c244b))
 
 - - -
+## [1.2.0](https://github.com/dsxragnarok/ffbetool/compare/37167a28f47ed5807d5c860132485b5bf2b24b77..1.2.0) - 2025-09-27
+#### Changes
+- remove pass by ref of frame_rect - ([14bfaec](https://github.com/dsxragnarok/ffbetool/commit/14bfaecdfaf4843050a669dc9bae6f9fa6346bad)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- use i32 for coordinates - ([e699adb](https://github.com/dsxragnarok/ffbetool/commit/e699adb8f06d68c0d58f356892866e83f6c937e6)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- coordinates with better naming scheme - ([8c40eae](https://github.com/dsxragnarok/ffbetool/commit/8c40eaebaa406748aaec96d38afbe81562781f31)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- make AnimFileType Copy - ([56ab619](https://github.com/dsxragnarok/ffbetool/commit/56ab6192368718009b85cf44add861d723b8c2ef)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- remove unnecessary spritesheet clones - ([51e0d77](https://github.com/dsxragnarok/ffbetool/commit/51e0d777d061e53722b65d4b4d80a0d797ba4acb)) - [@dsxragnarok](https://github.com/dsxragnarok)
+- replace reqwest with ureq - ([b1e8f8e](https://github.com/dsxragnarok/ffbetool/commit/b1e8f8e8aa4d1cb828f14e8c3f790854514c8f92)) - [@dsxragnarok](https://github.com/dsxragnarok)
+#### Features
+- implement support for monsters - ([9f9a27c](https://github.com/dsxragnarok/ffbetool/commit/9f9a27ceb402a1a63ed1e53de863e83841ee12f4)) - [@dsxragnarok](https://github.com/dsxragnarok)
+
+- - -
+
 ## [1.1.0](https://github.com/dsxragnarok/ffbetool/compare/e5d39222e20e98d89293d8182593b145940df2da..1.1.0) - 2025-09-02
 #### Bug Fixes
 - incorrect rotation handling - ([eb42944](https://github.com/dsxragnarok/ffbetool/commit/eb42944c4205dfb72e691c8e316aae7ca1eb99b0)) - [@dsxragnarok](https://github.com/dsxragnarok)
