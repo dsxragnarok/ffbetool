@@ -7,6 +7,7 @@ to assemble the spritesheet.
 ## Features
 - **Unit ID Support**: Use traditional numeric unit IDs for precise character selection
 - **Character Name Support**: Use character names instead of unit IDs for convenience
+- **Monster Support**: Process monster sprites and animations
 - **Auto-discovery**: Automatically finds and processes all animations for a unit
 - **Multiple Output Formats**: Generate spritesheets, animated GIFs, APNGs, and JSON metadata
 - **Flexible Layout**: Control spritesheet columns and include empty frames
@@ -30,6 +31,7 @@ Options:
     -j, --json                 Save json file
         --gif                  Save animated gif
         --apng                 Save animated png (APNG)
+        --unit_type <TYPE>     Unit type: character or monster [default: character]
     -i, --input <INPUT_DIR>    The source input directory [default: .]
     -o, --output <OUTPUT_DIR>  The output directory [default: .]
     -h, --help                 Print help
@@ -69,6 +71,15 @@ ffbetool 401012417 -i input/ -o output/
 
 # Process only the "atk" animation for unit 401012417
 ffbetool 401012417 -a atk -i input/ -o output/
+```
+
+### Using Monster IDs
+```bash
+# Process monster sprites using monster ID
+ffbetool 302001100 -i input/ -o output/ --unit_type monster
+
+# Process specific monster animation
+ffbetool 302001100 -a atk -i input/ -o output/ --unit_type monster --gif
 ```
 
 ### Generate animated outputs
