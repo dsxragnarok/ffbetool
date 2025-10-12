@@ -1,6 +1,6 @@
 use clap::Parser;
 use ffbetool::{
-    self, FfbeError, UnitType,
+    self, AnimFileType, FfbeError, UnitIdentifier, UnitType,
     cgg::{self},
     cgs::{self, process_frames},
     character_db,
@@ -9,25 +9,6 @@ use ffbetool::{
 };
 use image::imageops;
 use std::io::BufRead;
-use std::str::FromStr;
-
-#[derive(Clone)]
-pub enum UnitIdentifier {
-    Id(u32),
-    Name(String),
-}
-
-impl FromStr for UnitIdentifier {
-    type Err = std::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // Try to parse as u32 first, if it fails treat as a name
-        match s.parse::<u32>() {
-            Ok(id) => Ok(UnitIdentifier::Id(id)),
-            Err(_) => Ok(UnitIdentifier::Name(s.to_string())),
-        }
-    }
-}
 
 #[derive(Parser, Clone)]
 #[command(name = "ffbetool")]
@@ -75,23 +56,6 @@ struct Args {
     /// Unit type (character, monster)
     #[arg(long = "unit_type", default_value = "character")]
     unit_type: UnitType,
-}
-
-#[derive(Clone, Copy)]
-enum AnimFileType {
-    Gif,
-    Apng,
-    None,
-}
-
-impl From<&str> for AnimFileType {
-    fn from(value: &str) -> Self {
-        match value {
-            "apng" => AnimFileType::Apng,
-            "gif" => AnimFileType::Gif,
-            _ => AnimFileType::None,
-        }
-    }
 }
 
 fn main() -> ffbetool::Result<()> {

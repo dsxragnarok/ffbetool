@@ -59,3 +59,38 @@ impl FromStr for UnitType {
         }
     }
 }
+
+#[derive(Clone)]
+pub enum UnitIdentifier {
+    Id(u32),
+    Name(String),
+}
+
+impl FromStr for UnitIdentifier {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        // Try to parse as u32 first, if it fails treat as a name
+        match s.parse::<u32>() {
+            Ok(id) => Ok(UnitIdentifier::Id(id)),
+            Err(_) => Ok(UnitIdentifier::Name(s.to_string())),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum AnimFileType {
+    Gif,
+    Apng,
+    None,
+}
+
+impl From<&str> for AnimFileType {
+    fn from(value: &str) -> Self {
+        match value {
+            "apng" => AnimFileType::Apng,
+            "gif" => AnimFileType::Gif,
+            _ => AnimFileType::None,
+        }
+    }
+}
