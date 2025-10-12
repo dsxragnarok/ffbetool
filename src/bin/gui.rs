@@ -9,6 +9,8 @@ struct App {
     atlas_file: Option<PathBuf>,
     cgs_file: Option<PathBuf>,
     cgg_files: Option<Vec<PathBuf>>,
+    texture: Option<egui::TextureHandle>,
+    error: Option<String>,
 }
 
 fn render_file_label(ui: &mut Ui, file_path: &PathBuf, default: Option<&str>) -> Response {
@@ -30,6 +32,7 @@ impl eframe::App for App {
             }
             if let Some(atlas_file) = &self.atlas_file {
                 render_file_label(ui, &atlas_file, None);
+                self.load_image_from_path(ctx, &atlas_file.clone());
             }
             if ui.button("Load CGS File").clicked() {
                 self.cgs_file = FileDialog::new().pick_file();
@@ -53,9 +56,31 @@ impl eframe::App for App {
                     ui.label("Bottom Pane");
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui.label("Image Pane");
+                if let Some(texture) = &self.texture {
+                    ui.add(egui::Image::new(texture).shrink_to_fit());
+                } else if let Some(err) = &self.error {
+                    ui.label(err);
+                }
             });
         });
+    }
+}
+
+impl App {
+    fn load_image_from_path(&mut self, ctx: &egui::Context, path: &PathBuf) {
+        match image::open(&path) {
+            Ok(img) => {
+                let rgba = img.to_rgba8();
+                let size = [rgba.width() as usize, rgba.height() as usize];
+                let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
+
+                self.texture = Some(ctx.load_texture("image", color_image, Default::default()));
+            }
+            Err(err) => {
+                self.texture = None;
+                self.error = Some(err.to_string())
+            }
+        }
     }
 }
 
