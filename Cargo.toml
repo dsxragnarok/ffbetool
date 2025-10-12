@@ -11,18 +11,34 @@ sprite atlas assets.
 
 [[bin]]
 name = "ffbetool"
-path = "src/bin/main.rs"
+path = "src/bin/cli.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "ffbetool-gui"
+path = "src/bin/gui.rs"
+required-features = ["gui"]
 
 [dependencies]
+# Core dependencies 
 apng = { version = "0.3.4", features = ["png"] }
 image = "0.24.9"
 png = "0.17.16"
 log = "0.4.27"
-clap = { version = "4.0", features = ["derive"] }
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ureq = { version = "2.9", features = ["json"] }
+
+# Optional dependencies
+clap = { version = "4.0", features = ["derive"], optional = true }
+eframe = { version = "0.28", optional = true }
+egui = { version = "0.28", optional = true }
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+gui = ["dep:eframe", "dep:egui"]
 
 [dev-dependencies]
 tempfile = "3.8"
