@@ -12,6 +12,7 @@ struct App {
     output_dir: Option<PathBuf>,
     texture: Option<egui::TextureHandle>,
     error: Option<String>,
+    columns: u8,
 }
 
 fn render_file_label(ui: &mut Ui, file_path: &PathBuf, default: Option<&str>) -> Response {
@@ -27,7 +28,6 @@ fn render_file_label(ui: &mut Ui, file_path: &PathBuf, default: Option<&str>) ->
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::SidePanel::left("left_pane").show(ctx, |ui| {
-            ui.label("Left Pane");
             if ui.button("Load Atlas File").clicked() {
                 self.atlas_file = FileDialog::new().pick_file();
             }
@@ -58,19 +58,26 @@ impl eframe::App for App {
                 }
             }
         });
-        egui::CentralPanel::default().show(ctx, |_ui| {
-            egui::TopBottomPanel::bottom("bottom_pane")
-                .resizable(true)
-                .show(ctx, |ui| {
-                    ui.label("Bottom Pane");
-                });
-            egui::CentralPanel::default().show(ctx, |ui| {
-                if let Some(texture) = &self.texture {
-                    ui.add(egui::Image::new(texture).shrink_to_fit());
-                } else if let Some(err) = &self.error {
-                    ui.label(err);
-                }
-            });
+        egui::SidePanel::right("right_pane").show(ctx, |ui| {
+            ui.radio(true, "gif");
+            ui.radio(false, "apng");
+            ui.checkbox(&mut false, "Output JSON");
+            ui.checkbox(&mut false, "Render Empty Frames");
+
+            egui::ComboBox::from_label("columns")
+                .selected_text(format!("{}", self.columns))
+                .show_ui(ui, |ui| {
+                    for n in 0..5 {
+                        ui.selectable_value(&mut self.columns, n, n.to_string());
+                    }
+                })
+        });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if let Some(texture) = &self.texture {
+                ui.add(egui::Image::new(texture).shrink_to_fit());
+            } else if let Some(err) = &self.error {
+                ui.label(err);
+            }
         });
     }
 }
