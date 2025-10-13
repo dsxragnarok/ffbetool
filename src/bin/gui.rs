@@ -7,8 +7,9 @@ use rfd::FileDialog;
 #[derive(Default)]
 struct App {
     atlas_file: Option<PathBuf>,
-    cgs_file: Option<PathBuf>,
-    cgg_files: Option<Vec<PathBuf>>,
+    cgg_file: Option<PathBuf>,
+    cgs_files: Option<Vec<PathBuf>>,
+    output_dir: Option<PathBuf>,
     texture: Option<egui::TextureHandle>,
     error: Option<String>,
 }
@@ -34,16 +35,24 @@ impl eframe::App for App {
                 render_file_label(ui, &atlas_file, None);
                 self.load_image_from_path(ctx, &atlas_file.clone());
             }
-            if ui.button("Load CGS File").clicked() {
-                self.cgs_file = FileDialog::new().pick_file();
+            if ui.button("Load CGG File").clicked() {
+                self.cgg_file = FileDialog::new().pick_file();
             }
-            if let Some(cgs_file) = &self.cgs_file {
+            if let Some(cgs_file) = &self.cgg_file {
                 render_file_label(ui, &cgs_file, None);
             }
-            if ui.button("Load Anim Files").clicked() {
-                self.cgg_files = FileDialog::new().pick_files();
+            if ui.button("Select Output Directory").clicked() {
+                self.output_dir = FileDialog::new().pick_folder();
             }
-            if let Some(paths) = &self.cgg_files {
+            if let Some(output_dir) = &self.output_dir {
+                render_file_label(ui, &output_dir, None);
+            }
+
+            if ui.button("Load Anim Files").clicked() {
+                self.cgs_files = FileDialog::new().pick_files();
+            }
+            ui.label("Animation Files");
+            if let Some(paths) = &self.cgs_files {
                 for cgg_file in paths {
                     render_file_label(ui, &cgg_file, None);
                 }
