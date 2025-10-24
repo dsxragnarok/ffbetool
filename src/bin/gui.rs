@@ -12,7 +12,11 @@ struct App {
     output_dir: Option<PathBuf>,
     texture: Option<egui::TextureHandle>,
     error: Option<String>,
-    columns: u8,
+    columns: usize,
+    save_gif: bool,
+    save_apng: bool,
+    save_json: bool,
+    include_empty: bool,
 }
 
 fn render_file_label(ui: &mut Ui, file_path: &PathBuf, default: Option<&str>) -> Response {
@@ -59,10 +63,10 @@ impl eframe::App for App {
             }
         });
         egui::SidePanel::right("right_pane").show(ctx, |ui| {
-            ui.radio(true, "gif");
-            ui.radio(false, "apng");
-            ui.checkbox(&mut false, "Output JSON");
-            ui.checkbox(&mut false, "Render Empty Frames");
+            ui.checkbox(&mut self.save_gif, "gif");
+            ui.checkbox(&mut self.save_apng, "apng");
+            ui.checkbox(&mut self.save_json, "Output JSON");
+            ui.checkbox(&mut self.include_empty, "Render Empty Frames");
 
             egui::ComboBox::from_label("columns")
                 .selected_text(format!("{}", self.columns))
@@ -70,7 +74,11 @@ impl eframe::App for App {
                     for n in 0..5 {
                         ui.selectable_value(&mut self.columns, n, n.to_string());
                     }
-                })
+                });
+
+            if ui.button("Start").clicked() {
+                // Begin processing
+            }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(texture) = &self.texture {
