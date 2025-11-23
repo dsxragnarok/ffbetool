@@ -3,7 +3,7 @@
 /input-assets
 /output
 
-*-plan.md
+releases.json
 *.gif
 
 .DS_Store
